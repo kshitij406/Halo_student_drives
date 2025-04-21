@@ -2,38 +2,33 @@
 
 import { useState } from 'react';
 import { db } from '@/firebase/firebase.config';
-import { collection, addDoc, Timestamp } from 'firebase/firestore';
+import { collection, addDoc } from 'firebase/firestore';
+import { useRouter } from 'next/navigation';
 
 export default function AddDriver() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [service, setService] = useState('');
   const [prices, setPrices] = useState('');
-  const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
 
     try {
       await addDoc(collection(db, 'drivers'), {
         name,
         phone,
-        service,
+        service: service.toLowerCase().trim(),
         prices,
-        createdAt: Timestamp.now()
+        createdAt: new Date()
       });
 
-      alert('Driver saved to Firebase!');
-      setName('');
-      setPhone('');
-      setService('');
-      setPrices('');
+      alert('Driver added successfully!');
+      router.push('/');
     } catch (error) {
-      console.error('Error saving driver:', error);
-      alert('Error saving driver. Try again.');
-    } finally {
-      setLoading(false);
+      console.error(error);
+      alert('Something went wrong.');
     }
   };
 
@@ -43,6 +38,7 @@ export default function AddDriver() {
       <p className="text-gray-600 mb-6">Fill in your details to appear in the app.</p>
 
       <form onSubmit={handleSubmit}>
+        {/* Name */}
         <div className="mb-4">
           <label className="block font-medium mb-1">Your Name</label>
           <input
@@ -55,10 +51,11 @@ export default function AddDriver() {
           />
         </div>
 
+        {/* Phone */}
         <div className="mb-4">
           <label className="block font-medium mb-1">Phone Number</label>
           <input
-            type="text"
+            type="tel"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             placeholder="+230 5123 4567"
@@ -67,6 +64,7 @@ export default function AddDriver() {
           />
         </div>
 
+        {/* Service Name */}
         <div className="mb-4">
           <label className="block font-medium mb-1">Service Name</label>
           <input
@@ -79,6 +77,7 @@ export default function AddDriver() {
           />
         </div>
 
+        {/* Price List */}
         <div className="mb-4">
           <label className="block font-medium mb-1">Price List</label>
           <textarea
@@ -90,12 +89,12 @@ export default function AddDriver() {
           />
         </div>
 
+        {/* Submit Button */}
         <button
           type="submit"
           className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 transition"
-          disabled={loading}
         >
-          {loading ? 'Saving...' : 'Submit'}
+          Submit
         </button>
       </form>
     </main>

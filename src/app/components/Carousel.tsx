@@ -2,19 +2,20 @@
 
 import Link from 'next/link';
 
-interface Service {
-  id: string;
-  name: string;
+interface Props {
+  services: { id: string; name: string }[];
 }
 
-export default function Carousel({ services }: { services: Service[] }) {
+export default function Carousel({ services }: Props) {
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-2">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       {services.map((service) => (
-        <Link key={service.id} href={`/service/${service.id}`}>
-          <div className="bg-blue text-gray-900 text-center py-6 px-4 rounded-xl shadow hover:shadow-xl transition cursor-pointer font-semibold text-lg hover:bg-yellow-100">
-            {service.name}
-          </div>
+        <Link
+          key={service.id}
+          href={`/service/${service.id}`}
+          className="bg-white text-center py-6 px-4 rounded shadow hover:bg-yellow-100 font-semibold"
+        >
+          {service.name}
         </Link>
       ))}
     </div>
