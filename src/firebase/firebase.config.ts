@@ -1,10 +1,11 @@
 // src/firebase/firebase.config.ts
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-
+import dotenv from 'dotenv';
+dotenv.config();
 // ✅ Your actual Firebase config
 const firebaseConfig = {
-  apiKey: "AIzaSyAric8e5Bzm8Hv0Ba96Ioz272XR11THR-I",
+  apiKey: process.env.FIREBASE_API,
   authDomain: "student-rides-bb77e.firebaseapp.com",
   projectId: "student-rides-bb77e",
   storageBucket: "student-rides-bb77e.firebasestorage.app",
