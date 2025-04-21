@@ -18,7 +18,7 @@ export default function RootLayout({
         {/* Top Navbar */}
         <nav className="bg-yellow-500 text-black px-6 py-3 shadow-md flex justify-between items-center">
           <Link href="/" className="text-xl font-bold">
-            Student Rides
+            Peer Rides
           </Link>
           <div className="space-x-4">
             <Link href="/" className="hover:underline">
