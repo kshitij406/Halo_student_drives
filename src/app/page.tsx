@@ -61,7 +61,7 @@ const Home = () => {
           <Link
             key={service}
             href={`/service/${service.toLowerCase().replace(/\s+/g, '-')}`}
-            className="bg-white text-center text-black font-semibold py-6 rounded-lg hover:bg-yellow-300 transition"
+            className="text -xl bg-white text-center text-black font-semibold py-6 rounded-lg hover:bg-yellow-500 transition"
           >
             {service}
           </Link>
