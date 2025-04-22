@@ -1,10 +1,21 @@
 @import "tailwindcss";
-
 :root {
   --background: #ffffff;
   --foreground: #171717;
 }
+.container {
+  padding: 0px;
+  font-size: 18px;
+}
 
+
+
+@media (max-width: 480px) {
+  .container {
+    padding: 0px;
+    font-size: 12px;
+  }
+}
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

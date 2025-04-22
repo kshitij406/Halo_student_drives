@@ -70,8 +70,14 @@ export default function HomePage() {
   );
 
   return (
+<<<<<<< HEAD
     <main className="p-6 max-w-5xl mx-auto text-white">
       <h1 className="text-3xl font-bold mb-4">Student Rides</h1>
+=======
+    <main className="p-4 max-w-screen-xl mx-auto text-white">
+      <h1 className="text-3xl font-bold">Start Riding Now!</h1>
+      <p className="text-gray-400 mb-3">Find a ride service below:</p>
+>>>>>>> cbd577b04d4ac31b63f9616bbcfb39dd656396d2
 
       {/* Search Bar with Icon */}
       <div className="relative mb-4">
