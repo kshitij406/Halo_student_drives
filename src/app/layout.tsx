@@ -24,16 +24,21 @@ export default function RootLayout({
             Peer Rides
             </div>
           </Link>
-          <div className="flex items-center pr-10 ">
+          <div className="flex items-center">
             <Link href="/" className="block  h-full 
             px-4 py-2 transition-transform duration-300 ease-in-out transform
              hover:bg-black hover:text-white hover:scale-110">
               Home
             </Link>
             <Link href="/add-driver" className="block h-full 
-            px-4 py-2 transition-transform duration-300 ease-in-out transform
+            px-4 py-2 mr-4 transition-transform duration-300 ease-in-out transform
              hover:bg-black hover:text-white hover:scale-110">
               Add Driver
+            </Link>
+            <Link href="/login" className="block h-full 
+            px-4 py-2 mr-4 transition-transform duration-300 ease-in-out transform
+             hover:bg-black hover:text-white hover:scale-110">
+              Login
             </Link>
 
           </div>
