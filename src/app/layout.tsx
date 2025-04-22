@@ -15,11 +15,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-black text-white">
+      <body className="bg-black text-white containe flex flex-col">
         {/* Top Navbar */}
-        <nav className="bg-yellow-500 text-black font-bold py-3 shadow-md flex justify-between items-center">
+        <nav className="bg-yellow-500 text-black font-bold py-3 shadow-md flex justify-between items-center container">
           <Link href="/" className="text-xl font-bold">
-          <div className="flex items-center">
+          <div className="flex items-center container">
             <Image className = "pr-2 pl-4" src = "/transparent_logo.png" alt = "Logo" width = {70} height={70}></Image>
             Peer Rides
             </div>
@@ -30,23 +30,22 @@ export default function RootLayout({
              hover:bg-black hover:text-white hover:scale-110">
               Home
             </Link>
+            <Link href="/login" className="block h-full 
+            px-4 py-2 transition-transform duration-300 ease-in-out transform
+             hover:bg-black hover:text-white hover:scale-110">
+              Login
+            </Link>
             <Link href="/add-driver" className="block h-full 
             px-4 py-2 transition-transform duration-300 ease-in-out transform
              hover:bg-black hover:text-white hover:scale-110">
-              Add Driver
-            </Link>
-            <Link href="/login" className="block h-full 
-            px-4 py-2 mr-4 transition-transform duration-300 ease-in-out transform
-             hover:bg-black hover:text-white hover:scale-110">
-              Login
+              Drive
             </Link>
 
           </div>
         </nav>
 
-        <main className="min-h-screen">{children}</main>
+        <main className="min-h-screen flex-1 overflow-hidden">{children}</main>
         <nav className="bg-yellow-500 py-2 text-black font-bold">
-          <Link href="/" className="text-lg font-bold">
           <div className=" text-center">
             Made by <Link href="https://www.linkedin.com/in/harshilpatel05/" 
             className='text-black font-bold pr-1 hover:underline'>Harshil Patel</Link>
@@ -54,7 +53,6 @@ export default function RootLayout({
              <Link href="https://www.linkedin.com/in/kshitij-jha2006/" 
             className='text-black font-bold pl-1 hover:underline'>Kshitij Jha</Link>
             </div>
-            </Link>
             </nav>
       </body>
     </html>
