@@ -16,6 +16,7 @@ interface Driver {
 }
 
 export default function ServicePage({ params }: { params: { slug: string } }) {
+  const slug = params.slug;
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [sortOption, setSortOption] = useState('recent');
 
@@ -34,16 +35,16 @@ export default function ServicePage({ params }: { params: { slug: string } }) {
           priceList: d.priceList || [],
         };
       });
-
+  
       const filtered = data.filter((driver) =>
-        driver.service.toLowerCase().includes(params.slug.toLowerCase())
+        driver.service.toLowerCase().includes(slug.toLowerCase())
       );
       setDrivers(filtered);
     };
-
+  
     fetchDrivers();
-  }, [params.slug]);
-
+  }, [slug]);
+  
   const sortedDrivers = drivers.sort((a, b) => {
     if (sortOption === 'alphabetical') {
       return a.name.localeCompare(b.name);
