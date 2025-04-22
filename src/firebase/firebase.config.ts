@@ -6,14 +6,14 @@ import { getStorage } from 'firebase/storage';
 console.log('🔥 Firebase API Key Loaded:', process.env.NEXT_PUBLIC_FIREBASE_API);
 
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API, // ✅ UPDATED HERE
-  authDomain: 'student-rides-bb77e.firebaseapp.com',
-  projectId: 'student-rides-bb77e',
-  storageBucket: 'student-rides-bb77e.appspot.com',
-  messagingSenderId: '856900955842',
-  appId: '1:856900955842:web:c1ff508d982cf0b297155b',
-  measurementId: 'G-XNZZSSV1KG',
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
+
 
 const app = initializeApp(firebaseConfig);
 
