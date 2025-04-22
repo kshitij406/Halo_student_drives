@@ -12,10 +12,10 @@ interface Driver {
   phone: string;
   ratings?: number[];
   availability: string;
-  priceList: { location: string; price: string }[];  // Make sure this is part of the interface
+  priceList: { location: string; price: string }[];
 }
 
-export default function ServicePage({ slug }: { slug: string }) {
+export default function ServicePage({ params }: { params: { slug: string } }) {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [sortOption, setSortOption] = useState('recent');
 
@@ -31,22 +31,22 @@ export default function ServicePage({ slug }: { slug: string }) {
           phone: d.phone,
           ratings: d.ratings || [],
           availability: d.availability || 'Free',
-          priceList: d.priceList || [],  // Ensure priceList is included
+          priceList: d.priceList || [],
         };
       });
 
       const filtered = data.filter((driver) =>
-        driver.service.toLowerCase().includes(slug.toLowerCase())
+        driver.service.toLowerCase().includes(params.slug.toLowerCase())
       );
       setDrivers(filtered);
     };
 
     fetchDrivers();
-  }, [slug]);
+  }, [params.slug]);
 
   const sortedDrivers = drivers.sort((a, b) => {
     if (sortOption === 'alphabetical') {
-      return a.name.localeCompare(b.name); // Alphabetical sorting
+      return a.name.localeCompare(b.name);
     } else if (sortOption === 'rating') {
       const avgA =
         a.ratings && a.ratings.length > 0
@@ -56,14 +56,14 @@ export default function ServicePage({ slug }: { slug: string }) {
         b.ratings && b.ratings.length > 0
           ? b.ratings.reduce((sum, r) => sum + r, 0) / b.ratings.length
           : 0;
-      return avgB - avgA; // Sort by rating
+      return avgB - avgA;
     }
-    return 0; // Default to no sorting
+    return 0;
   });
 
   return (
     <div>
-      <h1>{slug} Drivers</h1>
+      <h1>{params.slug} Drivers</h1>
       <select
         value={sortOption}
         onChange={(e) => setSortOption(e.target.value)}
@@ -102,7 +102,6 @@ export default function ServicePage({ slug }: { slug: string }) {
                 </span>
               </div>
 
-              {/* Display Price List */}
               {driver.priceList.length > 0 && (
                 <div className="mt-2 text-sm">
                   <h4>Price List:</h4>
