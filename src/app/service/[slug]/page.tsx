@@ -1,12 +1,9 @@
-'use client';
-
 import { useEffect, useState } from 'react';
 import { db } from '@/firebase/firebase.config';
 import { collection, getDocs } from 'firebase/firestore';
 import { Star } from 'lucide-react';
 import Link from 'next/link';
 
-// Interface for Driver data
 interface Driver {
   id: string;
   name: string;
@@ -14,13 +11,13 @@ interface Driver {
   phone: string;
   ratings?: number[];
   availability: string;
+  priceList: { location: string; price: string }[];  // Make sure this is part of the interface
 }
 
 export default function ServicePage({ slug }: { slug: string }) {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [sortOption, setSortOption] = useState('recent');
 
-  // Fetching drivers based on the service (slug)
   useEffect(() => {
     const fetchDrivers = async () => {
       const snapshot = await getDocs(collection(db, 'drivers'));
@@ -33,10 +30,10 @@ export default function ServicePage({ slug }: { slug: string }) {
           phone: d.phone,
           ratings: d.ratings || [],
           availability: d.availability || 'Free',
+          priceList: d.priceList || [],  // Ensure priceList is included
         };
       });
 
-      // Filter the drivers based on the service (slug)
       const filtered = data.filter((driver) =>
         driver.service.toLowerCase().includes(slug.toLowerCase())
       );
@@ -46,7 +43,6 @@ export default function ServicePage({ slug }: { slug: string }) {
     fetchDrivers();
   }, [slug]);
 
-  // Sorting drivers based on the selected option
   const sortedDrivers = drivers.sort((a, b) => {
     if (sortOption === 'alphabetical') {
       return a.name.localeCompare(b.name); // Alphabetical sorting
@@ -66,10 +62,7 @@ export default function ServicePage({ slug }: { slug: string }) {
 
   return (
     <div>
-      {/* Service Name */}
       <h1>{slug} Drivers</h1>
-
-      {/* Sorting Options */}
       <select
         value={sortOption}
         onChange={(e) => setSortOption(e.target.value)}
@@ -80,7 +73,6 @@ export default function ServicePage({ slug }: { slug: string }) {
         <option value="rating">Rating (High → Low)</option>
       </select>
 
-      {/* Displaying the sorted drivers */}
       {sortedDrivers.map((driver) => {
         const avgRating =
           driver.ratings && driver.ratings.length > 0
@@ -108,6 +100,18 @@ export default function ServicePage({ slug }: { slug: string }) {
                   {driver.availability}
                 </span>
               </div>
+
+              {/* Display Price List */}
+              {driver.priceList.length > 0 && (
+                <div className="mt-2 text-sm">
+                  <h4>Price List:</h4>
+                  {driver.priceList.map((price, index) => (
+                    <p key={index} className="text-gray-600">
+                      {price.location}: {price.price}
+                    </p>
+                  ))}
+                </div>
+              )}
             </div>
           </Link>
         );

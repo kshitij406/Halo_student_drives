@@ -10,9 +10,9 @@ import {
   collection,
   addDoc,
   deleteDoc,
+  updateDoc,
 } from "firebase/firestore";
 import { Star } from "lucide-react";
-import { updateDoc } from "firebase/firestore";
 
 interface Review {
   id: string;
@@ -21,12 +21,18 @@ interface Review {
   createdAt: string;
 }
 
+interface PriceEntry {
+  location: string;
+  price: string;
+}
+
 interface Driver {
   id: string;
   name: string;
   service: string;
   phone: string;
   ratings?: number[];
+  priceList: PriceEntry[];
 }
 
 export default function DriverPage() {
@@ -50,6 +56,7 @@ export default function DriverPage() {
           service: d.service,
           phone: d.phone,
           ratings: d.ratings || [],
+          priceList: d.priceList || [],
         });
       }
     };
@@ -88,17 +95,37 @@ export default function DriverPage() {
 
     await addDoc(collection(db, `drivers/${id}/reviews`), reviewData);
 
+    // Add the rating to the driver's ratings in Firestore
     await updateDoc(doc(db, "drivers", String(id)), {
       ratings: [...(driver?.ratings || []), rating],
     });
+
     setReview("");
     setRating(0);
     window.location.reload();
   };
 
-  const handleDelete = async (reviewId: string) => {
-    await deleteDoc(doc(db, `drivers/${id}/reviews/${reviewId}`));
-    setReviews((prev) => prev.filter((r) => r.id !== reviewId));
+  const handleDelete = async (reviewId: string, reviewRating: number) => {
+    try {
+      // Delete the review from Firestore
+      await deleteDoc(doc(db, `drivers/${id}/reviews`, reviewId));
+
+      // Update the driver's ratings array in Firestore by removing the deleted rating
+      const updatedRatings = (driver?.ratings || []).filter(
+        (rating) => rating !== reviewRating
+      );
+
+      // Update the driver's document in Firestore with the new ratings array
+      await updateDoc(doc(db, "drivers", String(id)), {
+        ratings: updatedRatings,
+      });
+
+      // Update the reviews state to remove the deleted review
+      setReviews((prev) => prev.filter((r) => r.id !== reviewId));
+    } catch (error) {
+      console.error("Error deleting review:", error);
+      alert("Failed to delete the review.");
+    }
   };
 
   if (!driver) return <p className="text-white p-6">Loading driver...</p>;
@@ -107,7 +134,7 @@ export default function DriverPage() {
     <main className="p-6 max-w-3xl mx-auto text-white">
       <h1 className="text-2xl font-bold mb-2">{driver.name}</h1>
       <p className="mb-1">Service: {driver.service}</p>
-      <p className="mb-1">Phone: {driver.phone}</p>
+      <p className="mb-4">Phone: {driver.phone}</p>
 
       <div className="flex items-center gap-2 mt-2 mb-4">
         {[1, 2, 3, 4, 5].map((star) => (
@@ -119,6 +146,26 @@ export default function DriverPage() {
           />
         ))}
         <span className="text-sm text-yellow-400">{avgRating.toFixed(1)}</span>
+      </div>
+
+      {/* Display Price List */}
+      <div className="mb-6">
+        <h2 className="font-semibold text-lg mb-2">Price List</h2>
+        {driver.priceList && driver.priceList.length > 0 ? (
+          <ul className="space-y-2">
+            {driver.priceList.map((price, index) => (
+              <li
+                key={index}
+                className="flex justify-between text-lg text-yellow-500"
+              >
+                <span className="text-white">{price.location}</span>
+                <span className="text-white">₹ {price.price}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p>No price information available.</p>
+        )}
       </div>
 
       {/* Review Submission */}
@@ -150,7 +197,7 @@ export default function DriverPage() {
       </div>
 
       {/* Show Reviews */}
-      <div className="space-y-4">
+      <div className="space-y-4 mt-6">
         <h2 className="text-xl font-semibold mb-2">User Reviews</h2>
         {reviews.length === 0 ? (
           <p className="text-gray-300">No reviews yet.</p>
@@ -173,7 +220,7 @@ export default function DriverPage() {
               <p className="text-sm">{r.text}</p>
               <p className="text-xs text-gray-400 mt-1">{r.createdAt}</p>
               <button
-                onClick={() => handleDelete(r.id)}
+                onClick={() => handleDelete(r.id, r.rating)}
                 className="text-red-400 text-xs mt-1 underline"
               >
                 Delete

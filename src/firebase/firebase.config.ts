@@ -2,7 +2,7 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 
-// Add this line to debug
+// Ensure the Firebase API key is loaded from the environment variable
 console.log("🔥 Firebase API Key Loaded:", process.env.FIREBASE_API);
 
 const firebaseConfig = {

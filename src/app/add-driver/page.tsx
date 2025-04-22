@@ -1,215 +1,125 @@
 'use client';
 
-import { useState } from 'react';
-import { addDoc, collection } from 'firebase/firestore';
-import { db } from '../../firebase/firebase.config';
+import { useEffect, useState } from 'react';
+import { db } from '@/firebase/firebase.config';
+import { collection, getDocs } from 'firebase/firestore';
+import { Star } from 'lucide-react';
+import Link from 'next/link';
 
-// Interface for price data
-interface PriceEntry {
-  location: string;
-  price: string;
-}
-
-// Interface for driver data
-interface DriverInput {
+interface Driver {
+  id: string;
   name: string;
+  service: string;
   phone: string;
-  priceList: PriceEntry[];
+  ratings?: number[];
+  availability: string;
+  priceList: { location: string; price: string }[];  // Include priceList in the Driver interface
 }
 
-export default function AddDriverPage() {
-  const [isServiceMode, setIsServiceMode] = useState(false);
-  const [serviceName, setServiceName] = useState('');
-  const [drivers, setDrivers] = useState<DriverInput[]>([
-    { name: 'John Doe', phone: '+230 5123 4567', priceList: [{ location: '', price: '' }] },
-  ]);
+export default function ServicePage({ slug }: { slug: string }) {
+  const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [sortOption, setSortOption] = useState('recent');
 
-  // Handle driver input changes
-  const handleDriverChange = (
-    index: number,
-    field: keyof DriverInput, // Field is specifically a key of DriverInput
-    value: string
-  ) => {
-    const updated = [...drivers];
-    if (field === 'priceList') {
-      // handle priceList separately, if field is 'priceList', do nothing or error handling can be done
-      console.error('priceList field cannot be changed directly');
-    } else {
-      updated[index][field] = value;
+  useEffect(() => {
+    const fetchDrivers = async () => {
+      const snapshot = await getDocs(collection(db, 'drivers'));
+      const data: Driver[] = snapshot.docs.map((doc) => {
+        const d = doc.data();
+        return {
+          id: doc.id,
+          name: d.name,
+          service: d.service,
+          phone: d.phone,
+          ratings: d.ratings || [],
+          availability: d.availability || 'Free',
+          priceList: d.priceList || [],  // Ensure priceList is being retrieved
+        };
+      });
+
+      const filtered = data.filter((driver) =>
+        driver.service.toLowerCase().includes(slug.toLowerCase())
+      );
+      setDrivers(filtered);
+    };
+
+    fetchDrivers();
+  }, [slug]);
+
+  const sortedDrivers = drivers.sort((a, b) => {
+    if (sortOption === 'alphabetical') {
+      return a.name.localeCompare(b.name);
+    } else if (sortOption === 'rating') {
+      const avgA =
+        a.ratings && a.ratings.length > 0
+          ? a.ratings.reduce((sum, r) => sum + r, 0) / a.ratings.length
+          : 0;
+      const avgB =
+        b.ratings && b.ratings.length > 0
+          ? b.ratings.reduce((sum, r) => sum + r, 0) / b.ratings.length
+          : 0;
+      return avgB - avgA;
     }
-    setDrivers(updated);
-  };
-
-  // Handle price input changes
-  const handlePriceChange = (
-    driverIndex: number,
-    priceIndex: number,
-    field: keyof PriceEntry, // Field is specifically a key of PriceEntry
-    value: string
-  ) => {
-    const updated = [...drivers];
-    updated[driverIndex].priceList[priceIndex][field] = value;
-    setDrivers(updated);
-  };
-
-  // Remove price entry
-  const removePrice = (driverIndex: number, priceIndex: number) => {
-    const updated = [...drivers];
-    updated[driverIndex].priceList.splice(priceIndex, 1);
-    setDrivers(updated);
-  };
-
-  // Remove driver
-  const removeDriver = (index: number) => {
-    const updated = [...drivers];
-    updated.splice(index, 1);
-    setDrivers(updated);
-  };
-
-  // Handle form submission
-  const handleSubmit = async () => {
-    try {
-      for (const driver of drivers) {
-        await addDoc(collection(db, 'drivers'), {
-          ...driver,
-          service: serviceName || driver.name,  // If serviceName exists, it will be used; otherwise, use driver name
-        });
-      }
-      alert('Driver(s) added successfully');
-    } catch (err) {
-      console.error(err); // Logs the error to the console
-      alert('Error adding driver');
-    }
-  };
+    return 0;
+  });
 
   return (
-    <div className="max-w-xl mx-auto p-6 text-white">
-      <h1 className="text-2xl font-bold mb-6">Become a Driver</h1>
+    <div>
+      <h1>{slug} Drivers</h1>
+      <select
+        value={sortOption}
+        onChange={(e) => setSortOption(e.target.value)}
+        className="p-2 text-black border rounded"
+      >
+        <option value="recent">Recently Added</option>
+        <option value="alphabetical">Alphabetically (A–Z)</option>
+        <option value="rating">Rating (High → Low)</option>
+      </select>
 
-      <div className="mb-4">
-        <label className="flex items-center mb-4 gap-2">
-          <input
-            type="checkbox"
-            checked={isServiceMode}
-            onChange={() => setIsServiceMode(!isServiceMode)}
-            className="mr-2"
-          />
-          Is this a Service?
-        </label>
-      </div>
+      {sortedDrivers.map((driver) => {
+        const avgRating =
+          driver.ratings && driver.ratings.length > 0
+            ? driver.ratings.reduce((sum, r) => sum + r, 0) / driver.ratings.length
+            : 0;
 
-      {/* If Service Mode is enabled, show service name input */}
-      {isServiceMode && (
-        <div className="mb-4">
-          <label>Service Name</label>
-          <input
-            type="text"
-            value={serviceName}
-            onChange={(e) => setServiceName(e.target.value)} // Handle service name input change
-            placeholder="Service Name"
-            className="w-full p-2 mb-2 bg-black text-white rounded"
-          />
-        </div>
-      )}
+        return (
+          <Link key={driver.id} href={`/driver/${driver.id}`} className="block mb-4">
+            <div className="bg-white text-black p-4 rounded shadow hover:shadow-lg transition duration-300">
+              <div className="flex justify-between items-center">
+                <h3 className="font-semibold text-lg">{driver.name}</h3>
+                <div className="flex items-center gap-1 text-yellow-500 text-sm">
+                  <Star size={16} fill="#facc15" stroke="#facc15" />
+                  <span>{avgRating.toFixed(1)}</span>
+                </div>
+              </div>
+              <p className="italic text-sm text-gray-600">Service: {driver.service}</p>
+              <p className="text-sm">Phone: {driver.phone}</p>
 
-      {drivers.map((driver, index) => (
-        <div key={index} className="mb-4 border p-4 rounded-lg bg-gray-800">
-          <h3 className="font-bold mb-2">{isServiceMode ? `Driver ${index + 1}` : 'Driver'}</h3>
-
-          {/* Driver Name */}
-          <div className="mb-2">
-            <label>Driver Name</label>
-            <input
-              type="text"
-              value={driver.name}
-              onChange={(e) => handleDriverChange(index, 'name', e.target.value)}
-              placeholder="Driver Name"
-              className="w-full p-2 mb-2 bg-black text-white rounded"
-            />
-          </div>
-
-          {/* Phone Number */}
-          <div className="mb-2">
-            <label>Phone Number</label>
-            <input
-              type="text"
-              value={driver.phone}
-              onChange={(e) => handleDriverChange(index, 'phone', e.target.value)}
-              placeholder="Phone Number"
-              className="w-full p-2 mb-2 bg-black text-white rounded"
-            />
-          </div>
-
-          {/* Price List */}
-          <div className="mb-2">
-            <label>Price List</label>
-            {driver.priceList.map((price, priceIndex) => (
-              <div key={priceIndex} className="flex mb-2 gap-2">
-                <input
-                  type="text"
-                  value={price.location}
-                  onChange={(e) => handlePriceChange(index, priceIndex, 'location', e.target.value)}
-                  placeholder="Location"
-                  className="w-1/2 p-2 bg-black text-white rounded"
-                />
-                <input
-                  type="text"
-                  value={price.price}
-                  onChange={(e) => handlePriceChange(index, priceIndex, 'price', e.target.value)}
-                  placeholder="Price"
-                  className="w-1/2 p-2 bg-black text-white rounded"
-                />
-                {driver.priceList.length > 1 && (
-                  <button
-                    onClick={() => removePrice(index, priceIndex)}
-                    className="text-red-500 ml-2"
-                  >
-                    Remove
-                  </button>
+              {/* Display Prices */}
+              <div className="mt-2">
+                {driver.priceList.length > 0 ? (
+                  driver.priceList.map((price, index) => (
+                    <p key={index} className="text-sm">
+                      {price.location}: {price.price} USD
+                    </p>
+                  ))
+                ) : (
+                  <p className="text-sm text-gray-500">No prices available</p>
                 )}
               </div>
-            ))}
-            <button
-              onClick={() => {
-                const updated = [...drivers];
-                updated[index].priceList.push({ location: '', price: '' });
-                setDrivers(updated);
-              }}
-              className="text-yellow-500"
-            >
-              + Add Location
-            </button>
-          </div>
 
-          {/* Remove Driver */}
-          <button
-            onClick={() => removeDriver(index)}
-            className="bg-red-500 text-white p-2 rounded mt-2"
-          >
-            Remove Driver
-          </button>
-        </div>
-      ))}
-
-      {/* Add Another Driver */}
-      <button
-        onClick={() => {
-          const updated = [...drivers];
-          updated.push({ name: '', phone: '', priceList: [{ location: '', price: '' }] });
-          setDrivers(updated);
-        }}
-        className="text-yellow-500 mt-4"
-      >
-        + Add Another Driver
-      </button>
-
-      {/* Submit Button */}
-      <button
-        onClick={handleSubmit}
-        className="bg-yellow-500 text-black p-2 rounded mt-4"
-      >
-        Submit
-      </button>
+              <div className="flex mt-1 gap-1">
+                <span
+                  className={`text-sm ${
+                    driver.availability === 'Free' ? 'text-green-500' : 'text-red-500'
+                  }`}
+                >
+                  {driver.availability}
+                </span>
+              </div>
+            </div>
+          </Link>
+        );
+      })}
     </div>
   );
 }
