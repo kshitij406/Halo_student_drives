@@ -1,125 +1,283 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { db } from '@/firebase/firebase.config';
-import { collection, getDocs } from 'firebase/firestore';
-import { Star } from 'lucide-react';
-import Link from 'next/link';
+import { collection, addDoc } from 'firebase/firestore';
 
-interface Driver {
-  id: string;
-  name: string;
-  service: string;
-  phone: string;
-  ratings?: number[];
-  availability: string;
-  priceList: { location: string; price: string }[];  // Include priceList in the Driver interface
+interface PriceEntry {
+  location: string;
+  price: string;
 }
 
-export default function ServicePage({ slug }: { slug: string }) {
-  const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [sortOption, setSortOption] = useState('recent');
+interface Driver {
+  name: string;
+  phone: string;
+  priceList: PriceEntry[];
+}
 
-  useEffect(() => {
-    const fetchDrivers = async () => {
-      const snapshot = await getDocs(collection(db, 'drivers'));
-      const data: Driver[] = snapshot.docs.map((doc) => {
-        const d = doc.data();
-        return {
-          id: doc.id,
-          name: d.name,
-          service: d.service,
-          phone: d.phone,
-          ratings: d.ratings || [],
-          availability: d.availability || 'Free',
-          priceList: d.priceList || [],  // Ensure priceList is being retrieved
-        };
-      });
+interface FormData {
+  service: string;
+  drivers: Driver[];
+}
 
-      const filtered = data.filter((driver) =>
-        driver.service.toLowerCase().includes(slug.toLowerCase())
-      );
-      setDrivers(filtered);
-    };
+const isValidPhoneNumber = (phone: string): boolean => {
+  const phoneRegex = /^\+?\d{10,15}$/;
+  return phoneRegex.test(phone.trim());
+};
 
-    fetchDrivers();
-  }, [slug]);
-
-  const sortedDrivers = drivers.sort((a, b) => {
-    if (sortOption === 'alphabetical') {
-      return a.name.localeCompare(b.name);
-    } else if (sortOption === 'rating') {
-      const avgA =
-        a.ratings && a.ratings.length > 0
-          ? a.ratings.reduce((sum, r) => sum + r, 0) / a.ratings.length
-          : 0;
-      const avgB =
-        b.ratings && b.ratings.length > 0
-          ? b.ratings.reduce((sum, r) => sum + r, 0) / b.ratings.length
-          : 0;
-      return avgB - avgA;
-    }
-    return 0;
+export default function AddDriverPage() {
+  const [formData, setFormData] = useState<FormData>({
+    service: '',
+    drivers: [
+      {
+        name: '',
+        phone: '',
+        priceList: [{ location: '', price: '' }],
+      },
+    ],
   });
 
+  const [phoneErrors, setPhoneErrors] = useState<string[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+
+  const handleServiceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, service: e.target.value });
+  };
+
+  const handleDriverChange = (
+    index: number,
+    field: keyof Driver,
+    value: string
+  ) => {
+    const updated = [...formData.drivers];
+    updated[index] = {
+      ...updated[index],
+      [field]: value,
+    };
+  
+    if (field === 'phone') {
+      const errors = [...phoneErrors];
+      errors[index] = isValidPhoneNumber(value) ? '' : 'Invalid phone';
+      setPhoneErrors(errors);
+    }
+  
+    setFormData({ ...formData, drivers: updated });
+  };
+
+  const handlePriceChange = (
+    driverIndex: number,
+    priceIndex: number,
+    field: keyof PriceEntry,
+    value: string
+  ) => {
+    const updatedDrivers = [...formData.drivers];
+    updatedDrivers[driverIndex].priceList[priceIndex][field] = value;
+    setFormData({ ...formData, drivers: updatedDrivers });
+  };
+
+  const addDriver = () => {
+    setFormData({
+      ...formData,
+      drivers: [
+        ...formData.drivers,
+        { name: '', phone: '', priceList: [{ location: '', price: '' }] },
+      ],
+    });
+    setPhoneErrors([...phoneErrors, '']);
+  };
+
+  const removeDriver = (index: number) => {
+    const updated = formData.drivers.filter((_, i) => i !== index);
+    const updatedErrors = phoneErrors.filter((_, i) => i !== index);
+    setFormData({ ...formData, drivers: updated });
+    setPhoneErrors(updatedErrors);
+  };
+
+  const addPriceEntry = (driverIndex: number) => {
+    const updated = [...formData.drivers];
+    updated[driverIndex].priceList.push({ location: '', price: '' });
+    setFormData({ ...formData, drivers: updated });
+  };
+
+  const removePriceEntry = (driverIndex: number, priceIndex: number) => {
+    const updated = [...formData.drivers];
+    updated[driverIndex].priceList = updated[driverIndex].priceList.filter(
+      (_, i) => i !== priceIndex
+    );
+    setFormData({ ...formData, drivers: updated });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const hasInvalidPhone = formData.drivers.some(
+      (d) => !isValidPhoneNumber(d.phone)
+    );
+
+    if (hasInvalidPhone) {
+      const updatedErrors = formData.drivers.map((d) =>
+        isValidPhoneNumber(d.phone) ? '' : 'Invalid phone'
+      );
+      setPhoneErrors(updatedErrors);
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      for (const driver of formData.drivers) {
+        await addDoc(collection(db, 'drivers'), {
+          ...driver,
+          service: formData.service,
+          availability: 'Free',
+          ratings: [],
+        });
+      }
+      setSuccessMessage('Drivers added successfully!');
+      setFormData({
+        service: '',
+        drivers: [
+          { name: '', phone: '', priceList: [{ location: '', price: '' }] },
+        ],
+      });
+      setPhoneErrors(['']);
+    } catch (error) {
+      console.error('Error adding drivers:', error);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
-    <div>
-      <h1>{slug} Drivers</h1>
-      <select
-        value={sortOption}
-        onChange={(e) => setSortOption(e.target.value)}
-        className="p-2 text-black border rounded"
-      >
-        <option value="recent">Recently Added</option>
-        <option value="alphabetical">Alphabetically (A–Z)</option>
-        <option value="rating">Rating (High → Low)</option>
-      </select>
+    <div className="max-w-2xl mx-auto p-6 text-white">
+      <h2 className="text-2xl font-bold mb-4">Add New Driver</h2>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <input
+          type="text"
+          placeholder="Service Name"
+          value={formData.service}
+          onChange={handleServiceChange}
+          className="w-full p-2 rounded bg-gray-800"
+          required
+        />
 
-      {sortedDrivers.map((driver) => {
-        const avgRating =
-          driver.ratings && driver.ratings.length > 0
-            ? driver.ratings.reduce((sum, r) => sum + r, 0) / driver.ratings.length
-            : 0;
-
-        return (
-          <Link key={driver.id} href={`/driver/${driver.id}`} className="block mb-4">
-            <div className="bg-white text-black p-4 rounded shadow hover:shadow-lg transition duration-300">
-              <div className="flex justify-between items-center">
-                <h3 className="font-semibold text-lg">{driver.name}</h3>
-                <div className="flex items-center gap-1 text-yellow-500 text-sm">
-                  <Star size={16} fill="#facc15" stroke="#facc15" />
-                  <span>{avgRating.toFixed(1)}</span>
-                </div>
-              </div>
-              <p className="italic text-sm text-gray-600">Service: {driver.service}</p>
-              <p className="text-sm">Phone: {driver.phone}</p>
-
-              {/* Display Prices */}
-              <div className="mt-2">
-                {driver.priceList.length > 0 ? (
-                  driver.priceList.map((price, index) => (
-                    <p key={index} className="text-sm">
-                      {price.location}: {price.price} USD
-                    </p>
-                  ))
-                ) : (
-                  <p className="text-sm text-gray-500">No prices available</p>
-                )}
-              </div>
-
-              <div className="flex mt-1 gap-1">
-                <span
-                  className={`text-sm ${
-                    driver.availability === 'Free' ? 'text-green-500' : 'text-red-500'
-                  }`}
+        {formData.drivers.map((driver, driverIndex) => (
+          <div
+            key={driverIndex}
+            className="p-4 mb-4 border border-gray-600 rounded bg-black"
+          >
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="font-semibold">Driver {driverIndex + 1}</h3>
+              {formData.drivers.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeDriver(driverIndex)}
+                  className="text-red-500 hover:underline"
                 >
-                  {driver.availability}
-                </span>
-              </div>
+                  Remove
+                </button>
+              )}
             </div>
-          </Link>
-        );
-      })}
+
+            <input
+              type="text"
+              placeholder="Driver Name"
+              value={driver.name}
+              onChange={(e) =>
+                handleDriverChange(driverIndex, 'name', e.target.value)
+              }
+              className="w-full p-2 rounded bg-gray-800 mb-2"
+              required
+            />
+
+            <input
+              type="text"
+              placeholder="Phone Number"
+              value={driver.phone}
+              onChange={(e) =>
+                handleDriverChange(driverIndex, 'phone', e.target.value)
+              }
+              className={`w-full p-2 rounded bg-gray-800 mb-1 ${
+                phoneErrors[driverIndex] ? 'border border-red-500' : ''
+              }`}
+              required
+            />
+            {phoneErrors[driverIndex] && (
+              <p className="text-red-500 text-sm mb-2">Invalid phone number</p>
+            )}
+
+            <div>
+              <label className="block mb-2">Prices</label>
+              {driver.priceList.map((price, priceIndex) => (
+                <div key={priceIndex} className="flex gap-2 mb-2">
+                  <input
+                    type="text"
+                    placeholder="Location"
+                    value={price.location}
+                    onChange={(e) =>
+                      handlePriceChange(
+                        driverIndex,
+                        priceIndex,
+                        'location',
+                        e.target.value
+                      )
+                    }
+                    className="flex-1 p-2 rounded bg-gray-800"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Price (MUR)"
+                    value={price.price}
+                    onChange={(e) =>
+                      handlePriceChange(
+                        driverIndex,
+                        priceIndex,
+                        'price',
+                        e.target.value
+                      )
+                    }
+                    className="w-28 p-2 rounded bg-gray-800"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removePriceEntry(driverIndex, priceIndex)}
+                    className="px-2 bg-red-600 rounded hover:bg-red-700"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => addPriceEntry(driverIndex)}
+                className="mt-1 px-4 py-1 bg-yellow-400 text-black rounded hover:bg-yellow-300"
+              >
+                + Add Price
+              </button>
+            </div>
+          </div>
+        ))}
+
+        <button
+          type="button"
+          onClick={addDriver}
+          className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded"
+        >
+          + Add Another Driver
+        </button>
+
+        <button
+          type="submit"
+          disabled={submitting}
+          className="w-full bg-green-600 hover:bg-green-700 py-2 rounded font-semibold"
+        >
+          {submitting ? 'Submitting...' : 'Add Driver(s)'}
+        </button>
+
+        {successMessage && (
+          <p className="text-green-400 text-sm mt-2">{successMessage}</p>
+        )}
+      </form>
     </div>
   );
 }
