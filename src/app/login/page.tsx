@@ -26,7 +26,7 @@ export default function Login(){
             else{
                 alert('Invalid Credentials');
             }
-      router.push('/');}
+      router.push('/login');}
       catch (error) {
       console.error(error);
       alert('Something went wrong.');
@@ -35,37 +35,45 @@ export default function Login(){
         };
     return(
         <main className="p-6 max-w-xl mx-auto">
-            <h1 className='text-2xl mb-2 text-center text-#808080'>
-                Login to access your profile</h1>
-            <form onSubmit={handleSubmit}></form>
+            
+            <Image className = " mx-auto pt-25" src = "/transparent-white-logo.png" 
+            alt = "Logo" 
+            width = {200} height={200}></Image>
+            <form onSubmit={handleSubmit}>
             <div>
-                {/* Name */}
-        <div className="mb-4">
-          <label className="block font-medium mb-1 text-center pt-10"></label>
+        <div className="mb-4 text-center ">
+          <label className="block font-medium"></label>
           <input
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             placeholder="Username"
-            className="w-full border border-gray-300 p-2 rounded"
+            className="w-80 border border-gray-300 p-2 rounded"
             required
           />
         </div>
-
-        {/* Phone */}
-        <div className="mb-4">
-          <label className="block font-medium mb-1 text-center"></label>
+        <div className="mb-4 text-center">
+          <label className="block font-medium mb-1"></label>
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password"
-            className="w-full border border-gray-300 p-2 rounded"
+            placeholder="Password
+            "
+            className="w-80 border border-gray-300 p-2 rounded"
             required
           />
         </div>
+        <div className='text-center pt-4'>
+        <button
+          type="submit"
+          className=" bg-yellow-500 text-black text-bold px-4 py-2 rounded hover:bg-yellow-600 transition"
+        >
+          Submit
+        </button>
+        </div>
             </div>
-            
+            </form>
             </main>
     )
 }

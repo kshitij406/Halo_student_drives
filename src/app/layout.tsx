@@ -4,7 +4,7 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 
 export const metadata: Metadata = {
-  title: 'Student Rides',
+  title: 'Peer Rides',
   description: 'A student driver contact app',
 };
 
@@ -31,7 +31,7 @@ export default function RootLayout({
               Home
             </Link>
             <Link href="/add-driver" className="block h-full 
-            px-4 py-2 mr-4 transition-transform duration-300 ease-in-out transform
+            px-4 py-2 transition-transform duration-300 ease-in-out transform
              hover:bg-black hover:text-white hover:scale-110">
               Add Driver
             </Link>
