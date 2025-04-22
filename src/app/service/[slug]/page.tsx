@@ -1,5 +1,3 @@
-'use client';
-import { useEffect, useState } from 'react';
 import { db } from '@/firebase/firebase.config';
 import { collection, getDocs } from 'firebase/firestore';
 import { Star } from 'lucide-react';
@@ -19,66 +17,33 @@ interface PageProps {
   params: { slug: string };
 }
 
-export default function ServicePage({ params }: PageProps) {
-  const slug = params.slug;
-  const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [sortOption, setSortOption] = useState('recent');
-
-  useEffect(() => {
-    const fetchDrivers = async () => {
-      const snapshot = await getDocs(collection(db, 'drivers'));
-      const data: Driver[] = snapshot.docs.map((doc) => {
-        const d = doc.data();
-        return {
-          id: doc.id,
-          name: d.name,
-          service: d.service,
-          phone: d.phone,
-          ratings: d.ratings || [],
-          availability: d.availability || 'Free',
-          priceList: d.priceList || [],
-        };
-      });
-
-      const filtered = data.filter((driver) =>
-        driver.service.toLowerCase().includes(slug.toLowerCase())
-      );
-      setDrivers(filtered);
+export default async function ServicePage({ params }: PageProps) {
+  const snapshot = await getDocs(collection(db, 'drivers'));
+  const data: Driver[] = snapshot.docs.map((doc) => {
+    const d = doc.data();
+    return {
+      id: doc.id,
+      name: d.name,
+      service: d.service,
+      phone: d.phone,
+      ratings: d.ratings || [],
+      availability: d.availability || 'Free',
+      priceList: d.priceList || [],
     };
-
-    fetchDrivers();
-  }, [slug]);
-
-  const sortedDrivers = drivers.sort((a, b) => {
-    if (sortOption === 'alphabetical') {
-      return a.name.localeCompare(b.name);
-    } else if (sortOption === 'rating') {
-      const avgA =
-        (a.ratings ?? []).reduce((sum, r) => sum + r, 0) / ((a.ratings ?? []).length || 1);
-      const avgB =
-        (b.ratings ?? []).reduce((sum, r) => sum + r, 0) / ((b.ratings ?? []).length || 1);
-      return avgB - avgA;
-    }
-    return 0;
   });
+
+  const filtered = data.filter((driver) =>
+    driver.service.toLowerCase().includes(params.slug.toLowerCase())
+  );
 
   return (
     <div className="p-6 text-white">
-      <h1 className="text-2xl font-bold mb-4 capitalize">{slug} Drivers</h1>
+      <h1 className="text-2xl font-bold mb-4 capitalize">{params.slug} Drivers</h1>
 
-      <select
-        value={sortOption}
-        onChange={(e) => setSortOption(e.target.value)}
-        className="p-2 mb-4 text-black border rounded"
-      >
-        <option value="recent">Recently Added</option>
-        <option value="alphabetical">Alphabetically (A–Z)</option>
-        <option value="rating">Rating (High → Low)</option>
-      </select>
-
-      {sortedDrivers.map((driver) => {
+      {filtered.map((driver) => {
         const avgRating =
-          (driver.ratings ?? []).reduce((sum, r) => sum + r, 0) / ((driver.ratings ?? []).length || 1);
+          (driver.ratings ?? []).reduce((sum, r) => sum + r, 0) /
+          ((driver.ratings ?? []).length || 1);
 
         return (
           <Link key={driver.id} href={`/driver/${driver.id}`} className="block mb-4">
