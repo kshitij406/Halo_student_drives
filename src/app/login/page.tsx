@@ -16,7 +16,7 @@ export default function Login() {
     try {
       await signInWithEmailAndPassword(auth, username, password);
       alert('Login successful!');
-      router.push('/dashboard');
+      router.push('/');
     } catch (error: any) {
       console.error(error);
       alert('Invalid credentials or something went wrong.');
