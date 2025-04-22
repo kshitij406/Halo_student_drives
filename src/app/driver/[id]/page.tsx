@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
@@ -11,14 +11,17 @@ import {
   addDoc,
   deleteDoc,
   updateDoc,
+  Timestamp,
 } from "firebase/firestore";
 import { Star } from "lucide-react";
+import { useUser } from "../../../context/Usercontext";
 
 interface Review {
   id: string;
   text: string;
   rating: number;
-  createdAt: string;
+  reviewerName?: string;
+  timestamp: Timestamp;
 }
 
 interface PriceEntry {
@@ -37,6 +40,8 @@ interface Driver {
 
 export default function DriverPage() {
   const { id } = useParams();
+  const { user } = useUser();
+
   const [driver, setDriver] = useState<Driver | null>(null);
   const [rating, setRating] = useState(0);
   const [review, setReview] = useState("");
@@ -69,10 +74,11 @@ export default function DriverPage() {
           id: doc.id,
           text: data.text,
           rating: data.rating,
-          createdAt: data.createdAt || "",
+          reviewerName: data.reviewerName,
+          timestamp: data.timestamp,
         };
       });
-      setReviews(list);
+      setReviews(list.sort((a, b) => b.timestamp?.seconds - a.timestamp?.seconds));
     };
 
     fetchDriver();
@@ -85,42 +91,37 @@ export default function DriverPage() {
       : 0;
 
   const handleSubmit = async () => {
+    if (!user) return alert("You must be logged in to review.");
     if (!rating) return alert("Please give a rating.");
+    if (!review.trim()) return;
 
     const reviewData = {
       text: review.trim(),
       rating,
-      createdAt: new Date().toLocaleString(),
+      reviewerName: user.username || user.email,
+      timestamp: Timestamp.now(),
     };
 
     await addDoc(collection(db, `drivers/${id}/reviews`), reviewData);
 
-    // Add the rating to the driver's ratings in Firestore
     await updateDoc(doc(db, "drivers", String(id)), {
       ratings: [...(driver?.ratings || []), rating],
     });
 
     setReview("");
     setRating(0);
-    window.location.reload();
+    location.reload(); // optional: refresh reviews
   };
 
   const handleDelete = async (reviewId: string, reviewRating: number) => {
     try {
-      // Delete the review from Firestore
       await deleteDoc(doc(db, `drivers/${id}/reviews`, reviewId));
+      const updatedRatings = (driver?.ratings || []).filter((r) => r !== reviewRating);
 
-      // Update the driver's ratings array in Firestore by removing the deleted rating
-      const updatedRatings = (driver?.ratings || []).filter(
-        (rating) => rating !== reviewRating
-      );
-
-      // Update the driver's document in Firestore with the new ratings array
       await updateDoc(doc(db, "drivers", String(id)), {
         ratings: updatedRatings,
       });
 
-      // Update the reviews state to remove the deleted review
       setReviews((prev) => prev.filter((r) => r.id !== reviewId));
     } catch (error) {
       console.error("Error deleting review:", error);
@@ -148,16 +149,12 @@ export default function DriverPage() {
         <span className="text-sm text-yellow-400">{avgRating.toFixed(1)}</span>
       </div>
 
-      {/* Display Price List */}
       <div className="mb-6">
         <h2 className="font-semibold text-lg mb-2">Price List</h2>
         {driver.priceList && driver.priceList.length > 0 ? (
           <ul className="space-y-2">
             {driver.priceList.map((price, index) => (
-              <li
-                key={index}
-                className="flex justify-between text-lg text-yellow-500"
-              >
+              <li key={index} className="flex justify-between text-lg text-yellow-500">
                 <span className="text-white">{price.location}</span>
                 <span className="text-white">₹ {price.price}</span>
               </li>
@@ -168,32 +165,40 @@ export default function DriverPage() {
         )}
       </div>
 
-      {/* Review Submission */}
+      {/* Review Form */}
       <div className="bg-white text-black p-4 rounded shadow mb-6">
-        <div className="flex gap-1 mb-2">
-          {[1, 2, 3, 4, 5].map((s) => (
-            <Star
-              key={s}
-              size={20}
-              className="cursor-pointer"
-              onClick={() => setRating(s)}
-              fill={rating >= s ? "#facc15" : "none"}
-              stroke="#facc15"
+        {user ? (
+          <>
+            <div className="flex gap-1 mb-2">
+              {[1, 2, 3, 4, 5].map((s) => (
+                <Star
+                  key={s}
+                  size={20}
+                  className="cursor-pointer"
+                  onClick={() => setRating(s)}
+                  fill={rating >= s ? "#facc15" : "none"}
+                  stroke="#facc15"
+                />
+              ))}
+            </div>
+            <textarea
+              value={review}
+              onChange={(e) => setReview(e.target.value)}
+              placeholder="Leave a review..."
+              className="w-full border border-gray-300 p-2 rounded mb-2"
             />
-          ))}
-        </div>
-        <textarea
-          value={review}
-          onChange={(e) => setReview(e.target.value)}
-          placeholder="Leave a review..."
-          className="w-full border border-gray-300 p-2 rounded mb-2"
-        />
-        <button
-          onClick={handleSubmit}
-          className="bg-yellow-500 px-4 py-2 text-black font-bold rounded hover:bg-yellow-600"
-        >
-          Submit Review
-        </button>
+            <button
+              onClick={handleSubmit}
+              className="bg-yellow-500 px-4 py-2 text-black font-bold rounded hover:bg-yellow-600"
+            >
+              Submit Review
+            </button>
+          </>
+        ) : (
+          <p className="text-sm italic text-gray-600">
+            Please <strong className="text-yellow-500">login</strong> to leave a review.
+          </p>
+        )}
       </div>
 
       {/* Show Reviews */}
@@ -203,10 +208,7 @@ export default function DriverPage() {
           <p className="text-gray-300">No reviews yet.</p>
         ) : (
           reviews.map((r) => (
-            <div
-              key={r.id}
-              className="bg-gray-800 text-white p-3 rounded shadow"
-            >
+            <div key={r.id} className="bg-gray-800 text-white p-3 rounded shadow">
               <div className="flex gap-1 mb-1">
                 {[1, 2, 3, 4, 5].map((s) => (
                   <Star
@@ -218,13 +220,20 @@ export default function DriverPage() {
                 ))}
               </div>
               <p className="text-sm">{r.text}</p>
-              <p className="text-xs text-gray-400 mt-1">{r.createdAt}</p>
-              <button
-                onClick={() => handleDelete(r.id, r.rating)}
-                className="text-red-400 text-xs mt-1 underline"
-              >
-                Delete
-              </button>
+              <p className="text-xs text-yellow-400 mt-1 font-semibold">
+                — {r.reviewerName || 'Anonymous'}
+              </p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {r.timestamp?.toDate?.().toLocaleString()}
+              </p>
+              {user?.username === r.reviewerName && (
+                <button
+                  onClick={() => handleDelete(r.id, r.rating)}
+                  className="text-red-400 text-xs mt-1 underline"
+                >
+                  Delete
+                </button>
+              )}
             </div>
           ))
         )}

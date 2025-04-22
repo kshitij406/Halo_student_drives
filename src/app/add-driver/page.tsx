@@ -1,8 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { db } from '@/firebase/firebase.config';
+import { db, storage } from '@/firebase/firebase.config';
 import { collection, addDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import Tesseract from 'tesseract.js';
 
 interface PriceEntry {
   location: string;
@@ -12,6 +14,9 @@ interface PriceEntry {
 interface Driver {
   name: string;
   phone: string;
+  licenseNumber: string;
+  licenseImageUrl?: string;
+  verified: boolean;
   priceList: PriceEntry[];
 }
 
@@ -25,6 +30,14 @@ const isValidPhoneNumber = (phone: string): boolean => {
   return phoneRegex.test(phone.trim());
 };
 
+const extractTextFromImage = async (file: File): Promise<string> => {
+  const result = await Tesseract.recognize(file, 'eng', {
+    logger: (m) => console.log(m), // optional: logs OCR progress
+  });
+
+  return result.data.text;
+};
+
 export default function AddDriverPage() {
   const [formData, setFormData] = useState<FormData>({
     service: '',
@@ -32,6 +45,9 @@ export default function AddDriverPage() {
       {
         name: '',
         phone: '',
+        licenseNumber: '',
+        licenseImageUrl: '',
+        verified: false,
         priceList: [{ location: '', price: '' }],
       },
     ],
@@ -55,13 +71,13 @@ export default function AddDriverPage() {
       ...updated[index],
       [field]: value,
     };
-  
+
     if (field === 'phone') {
       const errors = [...phoneErrors];
       errors[index] = isValidPhoneNumber(value) ? '' : 'Invalid phone';
       setPhoneErrors(errors);
     }
-  
+
     setFormData({ ...formData, drivers: updated });
   };
 
@@ -71,9 +87,9 @@ export default function AddDriverPage() {
     field: keyof PriceEntry,
     value: string
   ) => {
-    const updatedDrivers = [...formData.drivers];
-    updatedDrivers[driverIndex].priceList[priceIndex][field] = value;
-    setFormData({ ...formData, drivers: updatedDrivers });
+    const updated = [...formData.drivers];
+    updated[driverIndex].priceList[priceIndex][field] = value;
+    setFormData({ ...formData, drivers: updated });
   };
 
   const addDriver = () => {
@@ -81,17 +97,25 @@ export default function AddDriverPage() {
       ...formData,
       drivers: [
         ...formData.drivers,
-        { name: '', phone: '', priceList: [{ location: '', price: '' }] },
+        {
+          name: '',
+          phone: '',
+          licenseNumber: '',
+          licenseImageUrl: '',
+          verified: false,
+          priceList: [{ location: '', price: '' }],
+        },
       ],
     });
     setPhoneErrors([...phoneErrors, '']);
   };
 
   const removeDriver = (index: number) => {
-    const updated = formData.drivers.filter((_, i) => i !== index);
-    const updatedErrors = phoneErrors.filter((_, i) => i !== index);
-    setFormData({ ...formData, drivers: updated });
-    setPhoneErrors(updatedErrors);
+    setFormData({
+      ...formData,
+      drivers: formData.drivers.filter((_, i) => i !== index),
+    });
+    setPhoneErrors(phoneErrors.filter((_, i) => i !== index));
   };
 
   const addPriceEntry = (driverIndex: number) => {
@@ -102,9 +126,41 @@ export default function AddDriverPage() {
 
   const removePriceEntry = (driverIndex: number, priceIndex: number) => {
     const updated = [...formData.drivers];
-    updated[driverIndex].priceList = updated[driverIndex].priceList.filter(
-      (_, i) => i !== priceIndex
-    );
+    updated[driverIndex].priceList.splice(priceIndex, 1);
+    setFormData({ ...formData, drivers: updated });
+  };
+
+  const handleLicenseImageUpload = async (
+    driverIndex: number,
+    file?: File
+  ) => {
+    if (!file) return;
+
+    const filePath = `licenses/${Date.now()}_${file.name}`;
+    const storageRef = ref(storage, filePath);
+    await uploadBytes(storageRef, file);
+    const downloadURL = await getDownloadURL(storageRef);
+
+    const imageText = await extractTextFromImage(file);
+    const updated = [...formData.drivers];
+    updated[driverIndex].licenseImageUrl = downloadURL;
+
+    const cleanText = imageText.replace(/\s+/g, '').toLowerCase();
+    const typedLicense = updated[driverIndex].licenseNumber
+      .replace(/\s+/g, '')
+      .toLowerCase();
+
+    const licenseMatch = cleanText.includes(typedLicense);
+
+    const nameParts = updated[driverIndex].name.toLowerCase().split(' ');
+    const nameMatch = nameParts.every((part) => cleanText.includes(part));
+
+    updated[driverIndex].verified = licenseMatch && nameMatch;
+
+    console.log('🧠 OCR TEXT:', cleanText);
+    console.log('✅ License Match:', licenseMatch);
+    console.log('✅ Name Match:', nameMatch);
+
     setFormData({ ...formData, drivers: updated });
   };
 
@@ -133,11 +189,19 @@ export default function AddDriverPage() {
           ratings: [],
         });
       }
+
       setSuccessMessage('Drivers added successfully!');
       setFormData({
         service: '',
         drivers: [
-          { name: '', phone: '', priceList: [{ location: '', price: '' }] },
+          {
+            name: '',
+            phone: '',
+            licenseNumber: '',
+            licenseImageUrl: '',
+            verified: false,
+            priceList: [{ location: '', price: '' }],
+          },
         ],
       });
       setPhoneErrors(['']);
@@ -206,14 +270,38 @@ export default function AddDriverPage() {
               <p className="text-red-500 text-sm mb-2">Invalid phone number</p>
             )}
 
-            <div>
-              <label className="block mb-2">Prices</label>
-              {driver.priceList.map((price, priceIndex) => (
+            <input
+              type="text"
+              placeholder="Driving License Number"
+              value={driver.licenseNumber}
+              onChange={(e) =>
+                handleDriverChange(driverIndex, 'licenseNumber', e.target.value)
+              }
+              className="w-full p-2 rounded bg-gray-800 mb-2"
+              required
+            />
+
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) =>
+                handleLicenseImageUpload(driverIndex, e.target.files?.[0])
+              }
+              className="w-full p-2 bg-gray-900 text-white rounded"
+            />
+
+            {driver.verified && (
+              <p className="text-green-400 mt-1 text-sm">✅ License Verified</p>
+            )}
+
+            <div className="mt-3">
+              <label className="block mb-1">Prices</label>
+              {driver.priceList.map((entry, priceIndex) => (
                 <div key={priceIndex} className="flex gap-2 mb-2">
                   <input
                     type="text"
                     placeholder="Location"
-                    value={price.location}
+                    value={entry.location}
                     onChange={(e) =>
                       handlePriceChange(
                         driverIndex,
@@ -227,7 +315,7 @@ export default function AddDriverPage() {
                   <input
                     type="text"
                     placeholder="Price (MUR)"
-                    value={price.price}
+                    value={entry.price}
                     onChange={(e) =>
                       handlePriceChange(
                         driverIndex,
@@ -240,7 +328,9 @@ export default function AddDriverPage() {
                   />
                   <button
                     type="button"
-                    onClick={() => removePriceEntry(driverIndex, priceIndex)}
+                    onClick={() =>
+                      removePriceEntry(driverIndex, priceIndex)
+                    }
                     className="px-2 bg-red-600 rounded hover:bg-red-700"
                   >
                     ✕
