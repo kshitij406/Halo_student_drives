@@ -4,16 +4,11 @@
   --foreground: #171717;
 }
 .container {
-  padding: 20px;
+  padding: 0px;
   font-size: 18px;
 }
 
-@media (max-width: 768px) {
-  .container {
-    padding: 10px;
-    font-size: 14px;
-  }
-}
+
 
 @media (max-width: 480px) {
   .container {
