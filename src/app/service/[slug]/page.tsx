@@ -13,11 +13,11 @@ interface Driver {
   priceList: { location: string; price: string }[];
 }
 
-interface PageProps {
+export default async function ServicePage({
+  params,
+}: {
   params: { slug: string };
-}
-
-export default async function ServicePage({ params }: PageProps) {
+}) {
   const snapshot = await getDocs(collection(db, 'drivers'));
   const data: Driver[] = snapshot.docs.map((doc) => {
     const d = doc.data();
@@ -43,7 +43,7 @@ export default async function ServicePage({ params }: PageProps) {
       {filtered.map((driver) => {
         const avgRating =
           (driver.ratings ?? []).reduce((sum, r) => sum + r, 0) /
-          ((driver.ratings ?? []).length || 1);
+          ((driver.ratings?.length || 1));
 
         return (
           <Link key={driver.id} href={`/driver/${driver.id}`} className="block mb-4">
