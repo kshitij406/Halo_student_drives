@@ -33,7 +33,7 @@ export default async function ServicePage({
   });
 
   const filtered = data.filter((driver) =>
-    driver.service.toLowerCase().includes(params.slug.toLowerCase())
+    driver.service?.toLowerCase().includes(params.slug.toLowerCase())
   );
 
   return (
@@ -41,9 +41,10 @@ export default async function ServicePage({
       <h1 className="text-2xl font-bold mb-4 capitalize">{params.slug} Drivers</h1>
 
       {filtered.map((driver) => {
-        const avgRating =
-          (driver.ratings ?? []).reduce((sum, r) => sum + r, 0) /
-          ((driver.ratings?.length || 1));
+        const ratings = driver.ratings ?? [];
+        const avgRating = ratings.length
+          ? ratings.reduce((sum, r) => sum + r, 0) / ratings.length
+          : 0;
 
         return (
           <Link key={driver.id} href={`/driver/${driver.id}`} className="block mb-4">
