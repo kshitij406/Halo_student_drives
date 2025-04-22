@@ -1,99 +1,185 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
-
 import { useRouter } from 'next/navigation';
 import { auth, googleProvider } from '@/firebase/firebase.config';
-import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signInWithPopup,
+  updateProfile,
+} from 'firebase/auth';
+import { useUser } from '@/context/Usercontext';
 
-export default function Login() {
+export default function LoginPage() {
+  const [tab, setTab] = useState<'login' | 'signup'>('login');
+  const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const router = useRouter();
+  const { setUser } = useUser();
+
+  useEffect(() => {
+    const existingUser = localStorage.getItem('user');
+    if (existingUser) router.push('/');
+  }, [router]);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await signInWithEmailAndPassword(auth, username, password);
-      alert('Login successful!');
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      const userInfo = {
+        username: user.displayName || user.email || '',
+        email: user.email || '',
+      };
+      setUser(userInfo);
+      localStorage.setItem('user', JSON.stringify(userInfo));
       router.push('/');
-    } catch (error: any) {
-      console.error(error);
-      alert('Invalid credentials or something went wrong.');
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error(error.message);
+        alert('Google sign-in failed: ' + error.message);
+      } else {
+        console.error(error);
+        alert('Google sign-in failed.');
+      }
+    }
+  };
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // Set username as displayName
+      await updateProfile(user, { displayName: username });
+
+      const userInfo = {
+        username: username,
+        email: user.email || '',
+      };
+      setUser(userInfo);
+      localStorage.setItem('user', JSON.stringify(userInfo));
+      router.push('/');
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error(error.message);
+        alert('Google sign-in failed: ' + error.message);
+      } else {
+        console.error(error);
+        alert('Google sign-in failed.');
+      }
     }
   };
 
   const handleGoogleSignIn = async () => {
     try {
-      await signInWithPopup(auth, googleProvider);
-      alert('Google sign-in successful!');
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+      const userInfo = {
+        username: user.displayName || user.email || '',
+        email: user.email || '',
+      };
+      setUser(userInfo);
+      localStorage.setItem('user', JSON.stringify(userInfo));
       router.push('/');
-    } catch (error: any) {
-      console.error(error);
-      alert('Google sign-in failed.');
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error(error.message);
+        alert('Google sign-in failed: ' + error.message);
+      } else {
+        console.error(error);
+        alert('Google sign-in failed.');
+      }
     }
   };
 
   return (
-    <main className="p-6 max-w-xl mx-auto">
+    <main className="p-6 max-w-xl mx-auto text-center">
       <Image
-        className="mx-auto pt-25"
+        className="mx-auto mb-4"
         src="/transparent-white-logo.png"
         alt="Logo"
-        width={200}
-        height={200}
+        width={150}
+        height={150}
       />
-      <form onSubmit={handleSubmit}>
-        <div>
-          <div className="mb-4 text-center">
-            <label className="block font-medium"></label>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Username"
-              className="w-80 border border-gray-300 p-2 rounded"
-              required
-            />
-          </div>
-          <div className="mb-4 text-center">
-            <label className="block font-medium mb-1"></label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Password"
-              className="w-80 border border-gray-300 p-2 rounded"
-              required
-            />
-          </div>
-          <div className="flex justify-center gap-4 pt-6">
-          <button
-            type="submit"
-            className="bg-yellow-500 text-black text-bold px-4 py-2 rounded hover:bg-yellow-600 transition"
-          >
-            Submit
-          </button>
 
-          <button
-            type="button"
-            onClick={handleGoogleSignIn}
-            className="bg-white border border-gray-400 px-4 py-2 rounded hover:bg-gray-100 transition flex items-center"
-          >
-            <Image
-              src="/google-icon.svg"
-              alt="Google"
-              width={20}
-              height={20}
-              className="mr-2"
-            />
-            <span className="text-black">Sign in with Google</span>
-          </button>
-        </div>
+      <div className="flex justify-center gap-4 mb-6">
+        <button
+          className={`px-4 py-2 rounded ${
+            tab === 'login' ? 'bg-yellow-500 text-black' : 'bg-gray-700 text-white'
+          }`}
+          onClick={() => setTab('login')}
+        >
+          Login
+        </button>
+        <button
+          className={`px-4 py-2 rounded ${
+            tab === 'signup' ? 'bg-yellow-500 text-black' : 'bg-gray-700 text-white'
+          }`}
+          onClick={() => setTab('signup')}
+        >
+          Sign Up
+        </button>
+      </div>
 
-        </div>
+      <form onSubmit={tab === 'login' ? handleLogin : handleSignup} className="space-y-4">
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="w-80 border border-gray-300 p-2 rounded text-black"
+          required
+        />
+
+        {tab === 'signup' && (
+          <input
+            type="text"
+            placeholder="Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            className="w-80 border border-gray-300 p-2 rounded text-black"
+            required
+          />
+        )}
+
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="w-80 border border-gray-300 p-2 rounded text-black"
+          required
+        />
+
+        <button
+          type="submit"
+          className="w-80 bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-2 rounded"
+        >
+          {tab === 'login' ? 'Login' : 'Create Account'}
+        </button>
       </form>
+
+      <div className="pt-6">
+        <button
+          onClick={handleGoogleSignIn}
+          className="bg-white border border-gray-400 px-4 py-2 rounded hover:bg-gray-100 transition flex items-center mx-auto"
+        >
+          <Image
+            src="/google-icon.svg"
+            alt="Google"
+            width={20}
+            height={20}
+            className="mr-2"
+          />
+          <span className="text-black">Sign in with Google</span>
+        </button>
+      </div>
     </main>
   );
 }

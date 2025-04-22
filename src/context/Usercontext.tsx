@@ -1,39 +1,39 @@
-// context/UserContext.tsx
 'use client';
 
-import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 
 interface User {
   username: string;
-  email?: string;
+  email: string;
 }
 
-const UserContext = createContext<{
+interface UserContextType {
   user: User | null;
   setUser: (user: User | null) => void;
-}>({
+}
+
+const UserContext = createContext<UserContextType>({
   user: null,
   setUser: () => {},
 });
 
-export const UserProvider = ({ children }: { children: ReactNode }) => {
+export function UserProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const stored = localStorage.getItem('user');
-    if (stored) setUser(JSON.parse(stored));
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
   }, []);
 
-  const handleSetUser = (u: User | null) => {
-    setUser(u);
-    localStorage.setItem('user', JSON.stringify(u));
-  };
-
   return (
-    <UserContext.Provider value={{ user, setUser: handleSetUser }}>
+    <UserContext.Provider value={{ user, setUser }}>
       {children}
     </UserContext.Provider>
   );
-};
+}
 
-export const useUser = () => useContext(UserContext);
+export function useUser() {
+  return useContext(UserContext);
+}
