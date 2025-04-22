@@ -1,7 +1,11 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import { db } from '@/firebase/firebase.config';
 import { collection, getDocs } from 'firebase/firestore';
 import { Star } from 'lucide-react';
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
 
 interface Driver {
   id: string;
@@ -13,34 +17,41 @@ interface Driver {
   priceList: { location: string; price: string }[];
 }
 
-export default async function ServicePage({
-  params,
-}: {
-  params: { slug: string };
-}) {
-  const snapshot = await getDocs(collection(db, 'drivers'));
-  const data: Driver[] = snapshot.docs.map((doc) => {
-    const d = doc.data();
-    return {
-      id: doc.id,
-      name: d.name,
-      service: d.service,
-      phone: d.phone,
-      ratings: d.ratings || [],
-      availability: d.availability || 'Free',
-      priceList: d.priceList || [],
-    };
-  });
+export default function ServicePage() {
+  const { slug } = useParams();
+  const [drivers, setDrivers] = useState<Driver[]>([]);
 
-  const filtered = data.filter((driver) =>
-    driver.service?.toLowerCase().includes(params.slug.toLowerCase())
-  );
+  useEffect(() => {
+    const fetchDrivers = async () => {
+      const snapshot = await getDocs(collection(db, 'drivers'));
+      const data: Driver[] = snapshot.docs.map((doc) => {
+        const d = doc.data();
+        return {
+          id: doc.id,
+          name: d.name,
+          service: d.service,
+          phone: d.phone,
+          ratings: d.ratings || [],
+          availability: d.availability || 'Free',
+          priceList: d.priceList || [],
+        };
+      });
+
+      const filtered = data.filter((driver) =>
+        driver.service?.toLowerCase().includes(String(slug).toLowerCase())
+      );
+
+      setDrivers(filtered);
+    };
+
+    fetchDrivers();
+  }, [slug]);
 
   return (
     <div className="p-6 text-white">
-      <h1 className="text-2xl font-bold mb-4 capitalize">{params.slug} Drivers</h1>
+      <h1 className="text-2xl font-bold mb-4 capitalize">{slug} Drivers</h1>
 
-      {filtered.map((driver) => {
+      {drivers.map((driver) => {
         const ratings = driver.ratings ?? [];
         const avgRating = ratings.length
           ? ratings.reduce((sum, r) => sum + r, 0) / ratings.length
