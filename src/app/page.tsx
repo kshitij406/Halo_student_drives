@@ -6,6 +6,7 @@ import { collection, getDocs } from 'firebase/firestore';
 import Link from 'next/link';
 import { Star } from 'lucide-react';
 import { useUser } from '@/context/Usercontext';
+import LoadingScreen from './components/LoadingScreen'; 
 
 interface Driver {
   id: string;
@@ -19,6 +20,8 @@ export default function HomePage() {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOption, setSortOption] = useState('recent');
+  const [loading, setLoading] = useState(true); // 👈 loading state
+
   const { user } = useUser();
 
   useEffect(() => {
@@ -34,7 +37,11 @@ export default function HomePage() {
           ratings: d.ratings || [],
         };
       });
-      setDrivers(data);
+
+      setTimeout(() => {
+        setDrivers(data);
+        setLoading(false);
+      }, 500); // 👈
     };
 
     fetchDrivers();
@@ -50,39 +57,40 @@ export default function HomePage() {
     if (sortOption === 'alphabetical') {
       return a.name.localeCompare(b.name);
     } else if (sortOption === 'rating') {
-      const avgA =
-        a.ratings && a.ratings.length > 0
-          ? a.ratings.reduce((sum, r) => sum + r, 0) / a.ratings.length
-          : 0;
-      const avgB =
-        b.ratings && b.ratings.length > 0
-          ? b.ratings.reduce((sum, r) => sum + r, 0) / b.ratings.length
-          : 0;
+      const avgA = a.ratings?.length
+        ? a.ratings.reduce((sum, r) => sum + r, 0) / a.ratings.length
+        : 0;
+      const avgB = b.ratings?.length
+        ? b.ratings.reduce((sum, r) => sum + r, 0) / b.ratings.length
+        : 0;
       return avgB - avgA;
     }
     return 0;
   });
 
-  const groupedByService = sortedDrivers.reduce(
-    (acc: Record<string, Driver[]>, driver) => {
-      if (!acc[driver.service]) acc[driver.service] = [];
-      acc[driver.service].push(driver);
-      return acc;
-    },
-    {}
-  );
+  const groupedByService = sortedDrivers.reduce((acc: Record<string, Driver[]>, driver) => {
+    if (!acc[driver.service]) acc[driver.service] = [];
+    acc[driver.service].push(driver);
+    return acc;
+  }, {});
+
+  if (loading) return <LoadingScreen show={loading} />
 
   return (
     <main className="px-4 py-6 max-w-7xl w-full mx-auto text-white">
       <div className="mb-6">
         <h1 className="text-xl text-gray-400">Hi, {user?.username || 'Guest'}</h1>
         <h2 className="text-4xl font-extrabold mb-1 tracking-tight">Your Ride, Reimagined.</h2>
-        <p className="text-gray-400 text-lg">Browse verified student drivers offering rides nearby.</p>
+        <p className="text-gray-400 text-lg">
+          Browse verified student drivers offering rides nearby.
+        </p>
       </div>
 
       {/* Search */}
       <div className="relative mb-5">
-        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white text-lg">🔍</span>
+        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white text-lg">
+          🔍
+        </span>
         <input
           type="text"
           value={searchTerm}
@@ -129,7 +137,9 @@ export default function HomePage() {
                           <span>{avgRating.toFixed(1)}</span>
                         </div>
                       </div>
-                      <p className="text-sm text-gray-400 italic mb-1">Phone: {driver.phone}</p>
+                      <p className="text-sm text-gray-400 italic mb-1">
+                        Phone: {driver.phone}
+                      </p>
                       <div className="flex gap-1 mt-1">
                         {[1, 2, 3, 4, 5].map((star) => (
                           <Star
