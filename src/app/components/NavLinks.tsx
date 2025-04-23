@@ -9,7 +9,7 @@ export default function NavLinks() {
   const pathname = usePathname();
 
   const linkClass =
-    'px-3 py-2 transition-all duration-200 rounded-xl text-sm sm:text-base font-medium';
+    'px-3 py-2  transition-all duration-200 rounded-xl text-sm sm:text-base font-medium';
 
   const getLinkStyle = (href: string) => {
     return pathname === href
