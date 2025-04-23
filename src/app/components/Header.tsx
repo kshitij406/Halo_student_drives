@@ -44,7 +44,6 @@ export default function Header() {
           </Link>
         ) : (
           <>
-            <span className="px-4 py-2 text-white">Hi, {user.username}</span>
             <button
               onClick={handleLogout}
               className="block h-full px-4 py-2 transition-transform duration-300 ease-in-out transform hover:bg-red-600 hover:text-white hover:scale-110 hover:rounded-3xl"
