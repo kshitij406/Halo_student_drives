@@ -1,10 +1,13 @@
-'use client';
+// File: src/app/add-driver/AddDriverForm.tsx
 
-import { useState } from 'react';
-import { db, storage } from '@/firebase/firebase.config';
-import { collection, addDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import Tesseract from 'tesseract.js';
+"use client";
+
+import { useState } from "react";
+import { db } from "@/firebase/firebase.config";
+import { collection, addDoc } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { storage } from "@/firebase/firebase.config";
+import axios from "axios";
 
 interface PriceEntry {
   location: string;
@@ -16,8 +19,8 @@ interface Driver {
   phone: string;
   licenseNumber: string;
   licenseImageUrl?: string;
-  verified: boolean;
   priceList: PriceEntry[];
+  uploading: boolean;
 }
 
 interface FormData {
@@ -30,51 +33,36 @@ const isValidPhoneNumber = (phone: string): boolean => {
   return phoneRegex.test(phone.trim());
 };
 
-const extractTextFromImage = async (file: File): Promise<string> => {
-  const result = await Tesseract.recognize(file, 'eng', {
-    logger: (m) => console.log(m), // optional: logs OCR progress
-  });
-
-  return result.data.text;
-};
-
-export default function AddDriverPage() {
+export default function AddDriverForm() {
   const [formData, setFormData] = useState<FormData>({
-    service: '',
+    service: "",
     drivers: [
       {
-        name: '',
-        phone: '',
-        licenseNumber: '',
-        licenseImageUrl: '',
-        verified: false,
-        priceList: [{ location: '', price: '' }],
+        name: "",
+        phone: "",
+        licenseNumber: "",
+        licenseImageUrl: "",
+        priceList: [{ location: "", price: "" }],
+        uploading: false,
       },
     ],
   });
 
-  const [phoneErrors, setPhoneErrors] = useState<string[]>([]);
+  const [phoneErrors, setPhoneErrors] = useState<string[]>([""]);
   const [submitting, setSubmitting] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
-
-  const handleServiceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, service: e.target.value });
-  };
+  const [successMessage, setSuccessMessage] = useState("");
 
   const handleDriverChange = (
     index: number,
-    field: keyof Driver,
+    field: keyof Omit<Driver, "priceList">,
     value: string
   ) => {
     const updated = [...formData.drivers];
-    updated[index] = {
-      ...updated[index],
-      [field]: value,
-    };
+    (updated[index][field] as string) = value;
 
-    if (field === 'phone') {
+    if (field === "phone") {
       const errors = [...phoneErrors];
-      errors[index] = isValidPhoneNumber(value) ? '' : 'Invalid phone';
+      errors[index] = isValidPhoneNumber(value) ? "" : "Invalid phone";
       setPhoneErrors(errors);
     }
 
@@ -98,16 +86,16 @@ export default function AddDriverPage() {
       drivers: [
         ...formData.drivers,
         {
-          name: '',
-          phone: '',
-          licenseNumber: '',
-          licenseImageUrl: '',
-          verified: false,
-          priceList: [{ location: '', price: '' }],
+          name: "",
+          phone: "",
+          licenseNumber: "",
+          licenseImageUrl: "",
+          priceList: [{ location: "", price: "" }],
+          uploading: false,
         },
       ],
     });
-    setPhoneErrors([...phoneErrors, '']);
+    setPhoneErrors([...phoneErrors, ""]);
   };
 
   const removeDriver = (index: number) => {
@@ -120,7 +108,7 @@ export default function AddDriverPage() {
 
   const addPriceEntry = (driverIndex: number) => {
     const updated = [...formData.drivers];
-    updated[driverIndex].priceList.push({ location: '', price: '' });
+    updated[driverIndex].priceList.push({ location: "", price: "" });
     setFormData({ ...formData, drivers: updated });
   };
 
@@ -130,38 +118,43 @@ export default function AddDriverPage() {
     setFormData({ ...formData, drivers: updated });
   };
 
-  const handleLicenseImageUpload = async (
-    driverIndex: number,
-    file?: File
-  ) => {
+  const verifyLicenseWithIDAnalyzer = async (file: File) => {
+    const payload = new FormData();
+    payload.append("file", file);
+    const response = await axios.post("/api/verifyLicence", payload);
+    return response.data;
+  };
+
+  const handleLicenseImageUpload = async (driverIndex: number, file?: File) => {
     if (!file) return;
 
-    const filePath = `licenses/${Date.now()}_${file.name}`;
-    const storageRef = ref(storage, filePath);
-    await uploadBytes(storageRef, file);
-    const downloadURL = await getDownloadURL(storageRef);
-
-    const imageText = await extractTextFromImage(file);
     const updated = [...formData.drivers];
-    updated[driverIndex].licenseImageUrl = downloadURL;
-
-    const cleanText = imageText.replace(/\s+/g, '').toLowerCase();
-    const typedLicense = updated[driverIndex].licenseNumber
-      .replace(/\s+/g, '')
-      .toLowerCase();
-
-    const licenseMatch = cleanText.includes(typedLicense);
-
-    const nameParts = updated[driverIndex].name.toLowerCase().split(' ');
-    const nameMatch = nameParts.every((part) => cleanText.includes(part));
-
-    updated[driverIndex].verified = licenseMatch && nameMatch;
-
-    console.log('🧠 OCR TEXT:', cleanText);
-    console.log('✅ License Match:', licenseMatch);
-    console.log('✅ Name Match:', nameMatch);
-
+    updated[driverIndex].uploading = true;
     setFormData({ ...formData, drivers: updated });
+
+    try {
+      const result = await verifyLicenseWithIDAnalyzer(file);
+
+      if (!result?.document?.valid) {
+        alert("License verification failed.");
+        updated[driverIndex].uploading = false;
+        setFormData({ ...formData, drivers: updated });
+        return;
+      }
+
+      const filePath = `licenses/${Date.now()}_${file.name}`;
+      const storageRef = ref(storage, filePath);
+      await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(storageRef);
+
+      updated[driverIndex].licenseImageUrl = downloadURL;
+    } catch (err) {
+      console.error("License verification/upload error:", err);
+      alert("Verification or upload failed.");
+    } finally {
+      updated[driverIndex].uploading = false;
+      setFormData({ ...formData, drivers: updated });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -170,10 +163,22 @@ export default function AddDriverPage() {
     const hasInvalidPhone = formData.drivers.some(
       (d) => !isValidPhoneNumber(d.phone)
     );
+    const hasUploading = formData.drivers.some((d) => d.uploading);
+    const missingImages = formData.drivers.some((d) => !d.licenseImageUrl);
+
+    if (hasUploading) {
+      alert("Please wait for all image uploads to finish.");
+      return;
+    }
+
+    if (missingImages) {
+      alert("Each driver must have a license image.");
+      return;
+    }
 
     if (hasInvalidPhone) {
       const updatedErrors = formData.drivers.map((d) =>
-        isValidPhoneNumber(d.phone) ? '' : 'Invalid phone'
+        isValidPhoneNumber(d.phone) ? "" : "Invalid phone"
       );
       setPhoneErrors(updatedErrors);
       return;
@@ -182,31 +187,32 @@ export default function AddDriverPage() {
     setSubmitting(true);
     try {
       for (const driver of formData.drivers) {
-        await addDoc(collection(db, 'drivers'), {
+        await addDoc(collection(db, "pendingDrivers"), {
           ...driver,
           service: formData.service,
-          availability: 'Free',
-          ratings: [],
+          status: "pending",
+          submittedAt: new Date(),
         });
       }
 
-      setSuccessMessage('Drivers added successfully!');
+      setSuccessMessage("Driver(s) submitted for admin approval.");
       setFormData({
-        service: '',
+        service: "",
         drivers: [
           {
-            name: '',
-            phone: '',
-            licenseNumber: '',
-            licenseImageUrl: '',
-            verified: false,
-            priceList: [{ location: '', price: '' }],
+            name: "",
+            phone: "",
+            licenseNumber: "",
+            licenseImageUrl: "",
+            priceList: [{ location: "", price: "" }],
+            uploading: false,
           },
         ],
       });
-      setPhoneErrors(['']);
+      setPhoneErrors([""]);
     } catch (error) {
-      console.error('Error adding drivers:', error);
+      console.error("Error submitting drivers:", error);
+      alert("Failed to submit drivers.");
     } finally {
       setSubmitting(false);
     }
@@ -214,42 +220,24 @@ export default function AddDriverPage() {
 
   return (
     <div className="max-w-2xl mx-auto p-6 text-white">
-      <h2 className="text-2xl font-bold mb-4">Add New Driver</h2>
+      <h2 className="text-2xl font-bold mb-4">Request Driver Listing</h2>
       <form onSubmit={handleSubmit} className="space-y-6">
         <input
           type="text"
           placeholder="Service Name"
           value={formData.service}
-          onChange={handleServiceChange}
+          onChange={(e) => setFormData({ ...formData, service: e.target.value })}
           className="w-full p-2 rounded bg-gray-800"
           required
         />
 
         {formData.drivers.map((driver, driverIndex) => (
-          <div
-            key={driverIndex}
-            className="p-4 mb-4 border border-gray-600 rounded bg-black"
-          >
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="font-semibold">Driver {driverIndex + 1}</h3>
-              {formData.drivers.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => removeDriver(driverIndex)}
-                  className="text-red-500 hover:underline"
-                >
-                  Remove
-                </button>
-              )}
-            </div>
-
+          <div key={driverIndex} className="p-4 mb-4 border border-gray-600 rounded bg-black">
             <input
               type="text"
               placeholder="Driver Name"
               value={driver.name}
-              onChange={(e) =>
-                handleDriverChange(driverIndex, 'name', e.target.value)
-              }
+              onChange={(e) => handleDriverChange(driverIndex, "name", e.target.value)}
               className="w-full p-2 rounded bg-gray-800 mb-2"
               required
             />
@@ -258,11 +246,9 @@ export default function AddDriverPage() {
               type="text"
               placeholder="Phone Number"
               value={driver.phone}
-              onChange={(e) =>
-                handleDriverChange(driverIndex, 'phone', e.target.value)
-              }
+              onChange={(e) => handleDriverChange(driverIndex, "phone", e.target.value)}
               className={`w-full p-2 rounded bg-gray-800 mb-1 ${
-                phoneErrors[driverIndex] ? 'border border-red-500' : ''
+                phoneErrors[driverIndex] ? "border border-red-500" : ""
               }`}
               required
             />
@@ -272,11 +258,9 @@ export default function AddDriverPage() {
 
             <input
               type="text"
-              placeholder="Driving License Number"
+              placeholder="License Number"
               value={driver.licenseNumber}
-              onChange={(e) =>
-                handleDriverChange(driverIndex, 'licenseNumber', e.target.value)
-              }
+              onChange={(e) => handleDriverChange(driverIndex, "licenseNumber", e.target.value)}
               className="w-full p-2 rounded bg-gray-800 mb-2"
               required
             />
@@ -284,15 +268,9 @@ export default function AddDriverPage() {
             <input
               type="file"
               accept="image/*"
-              onChange={(e) =>
-                handleLicenseImageUpload(driverIndex, e.target.files?.[0])
-              }
+              onChange={(e) => handleLicenseImageUpload(driverIndex, e.target.files?.[0])}
               className="w-full p-2 bg-gray-900 text-white rounded"
             />
-
-            {driver.verified && (
-              <p className="text-green-400 mt-1 text-sm">✅ License Verified</p>
-            )}
 
             <div className="mt-3">
               <label className="block mb-1">Prices</label>
@@ -303,12 +281,7 @@ export default function AddDriverPage() {
                     placeholder="Location"
                     value={entry.location}
                     onChange={(e) =>
-                      handlePriceChange(
-                        driverIndex,
-                        priceIndex,
-                        'location',
-                        e.target.value
-                      )
+                      handlePriceChange(driverIndex, priceIndex, "location", e.target.value)
                     }
                     className="flex-1 p-2 rounded bg-gray-800"
                   />
@@ -317,20 +290,13 @@ export default function AddDriverPage() {
                     placeholder="Price (MUR)"
                     value={entry.price}
                     onChange={(e) =>
-                      handlePriceChange(
-                        driverIndex,
-                        priceIndex,
-                        'price',
-                        e.target.value
-                      )
+                      handlePriceChange(driverIndex, priceIndex, "price", e.target.value)
                     }
                     className="w-28 p-2 rounded bg-gray-800"
                   />
                   <button
                     type="button"
-                    onClick={() =>
-                      removePriceEntry(driverIndex, priceIndex)
-                    }
+                    onClick={() => removePriceEntry(driverIndex, priceIndex)}
                     className="px-2 bg-red-600 rounded hover:bg-red-700"
                   >
                     ✕
@@ -345,6 +311,14 @@ export default function AddDriverPage() {
                 + Add Price
               </button>
             </div>
+
+            <button
+              type="button"
+              onClick={() => removeDriver(driverIndex)}
+              className="mt-4 text-sm text-red-400 hover:underline"
+            >
+              ✕ Remove This Driver
+            </button>
           </div>
         ))}
 
@@ -361,12 +335,10 @@ export default function AddDriverPage() {
           disabled={submitting}
           className="w-full bg-green-600 hover:bg-green-700 py-2 rounded font-semibold"
         >
-          {submitting ? 'Submitting...' : 'Add Driver(s)'}
+          {submitting ? "Submitting..." : "Submit for Admin Approval"}
         </button>
 
-        {successMessage && (
-          <p className="text-green-400 text-sm mt-2">{successMessage}</p>
-        )}
+        {successMessage && <p className="text-green-400 text-sm mt-2">{successMessage}</p>}
       </form>
     </div>
   );

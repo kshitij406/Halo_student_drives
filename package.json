@@ -9,9 +9,12 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "axios": "^1.8.4",
     "dependencies": "^0.0.1",
     "dotenv": "^16.5.0",
     "firebase": "^11.6.0",
+    "form-data": "^4.0.2",
+    "formidable": "^3.5.4",
     "lucide-react": "^0.503.0",
     "next": "15.3.1",
     "react": "^19.0.0",
@@ -23,6 +26,8 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@types/form-data": "^2.2.1",
+    "@types/formidable": "^3.4.5",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

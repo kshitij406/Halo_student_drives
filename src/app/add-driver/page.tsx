@@ -8,16 +8,17 @@ import AddDriverForm from './AddDriverForm';
 export default function AddDriverPage() {
   const { user } = useUser();
   const router = useRouter();
-  const [isClient, setIsClient] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setIsClient(true);
     if (!user) {
       router.push('/login');
+    } else {
+      setLoading(false);
     }
   }, [user, router]);
 
-  if (!isClient || !user) return null;
+  if (loading) return null;
 
   return (
     <main className="p-6 text-white">

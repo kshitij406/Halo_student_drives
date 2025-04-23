@@ -2,10 +2,14 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 
+export type Role = 'user' | 'dev';
+
 interface User {
   username: string;
   email: string;
+  role: 'user' | 'dev';
 }
+
 
 interface UserContextType {
   user: User | null;
@@ -17,13 +21,14 @@ const UserContext = createContext<UserContextType>({
   setUser: () => {},
 });
 
-export function UserProvider({ children }: { children: React.ReactNode }) {
+export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+    const stored = localStorage.getItem('user');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      setUser(parsed);
     }
   }, []);
 
@@ -32,8 +37,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       {children}
     </UserContext.Provider>
   );
-}
+};
 
-export function useUser() {
-  return useContext(UserContext);
-}
+export const useUser = () => useContext(UserContext);

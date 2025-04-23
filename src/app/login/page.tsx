@@ -26,14 +26,25 @@ export default function LoginPage() {
     if (existingUser) router.push('/');
   }, [router]);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const determineRole = (email: string, password?: string): 'user' | 'dev' => {
+    return (
+      email === process.env.NEXT_PUBLIC_DEV_USERNAME &&
+      password === process.env.NEXT_PUBLIC_DEV_PASSWORD
+    )
+      ? 'dev'
+      : 'user';
+  };
+
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
+      const role = determineRole(email, password);
       const userInfo = {
         username: user.displayName || user.email || '',
         email: user.email || '',
+        role,
       };
       setUser(userInfo);
       localStorage.setItem('user', JSON.stringify(userInfo));
@@ -41,26 +52,26 @@ export default function LoginPage() {
     } catch (error: unknown) {
       if (error instanceof Error) {
         console.error(error.message);
-        alert('Google sign-in failed: ' + error.message);
+        alert('Login failed: ' + error.message);
       } else {
         console.error(error);
-        alert('Google sign-in failed.');
+        alert('Login failed.');
       }
     }
   };
 
-  const handleSignup = async (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-
-      // Set username as displayName
       await updateProfile(user, { displayName: username });
 
+      const role = determineRole(email, password);
       const userInfo = {
-        username: username,
+        username,
         email: user.email || '',
+        role,
       };
       setUser(userInfo);
       localStorage.setItem('user', JSON.stringify(userInfo));
@@ -68,10 +79,10 @@ export default function LoginPage() {
     } catch (error: unknown) {
       if (error instanceof Error) {
         console.error(error.message);
-        alert('Google sign-in failed: ' + error.message);
+        alert('Login failed: ' + error.message);
       } else {
         console.error(error);
-        alert('Google sign-in failed.');
+        alert('Login failed.');
       }
     }
   };
@@ -80,9 +91,11 @@ export default function LoginPage() {
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
+      const role = determineRole(user.email || '');
       const userInfo = {
         username: user.displayName || user.email || '',
         email: user.email || '',
+        role,
       };
       setUser(userInfo);
       localStorage.setItem('user', JSON.stringify(userInfo));
@@ -90,10 +103,10 @@ export default function LoginPage() {
     } catch (error: unknown) {
       if (error instanceof Error) {
         console.error(error.message);
-        alert('Google sign-in failed: ' + error.message);
+        alert('Login failed: ' + error.message);
       } else {
         console.error(error);
-        alert('Google sign-in failed.');
+        alert('Login failed.');
       }
     }
   };
@@ -110,17 +123,13 @@ export default function LoginPage() {
 
       <div className="flex justify-center gap-4 mb-6">
         <button
-          className={`px-4 py-2 rounded ${
-            tab === 'login' ? 'bg-yellow-500 text-black' : 'bg-gray-700 text-white'
-          }`}
+          className={`px-4 py-2 rounded ${tab === 'login' ? 'bg-yellow-500 text-black' : 'bg-gray-700 text-white'}`}
           onClick={() => setTab('login')}
         >
           Login
         </button>
         <button
-          className={`px-4 py-2 rounded ${
-            tab === 'signup' ? 'bg-yellow-500 text-black' : 'bg-gray-700 text-white'
-          }`}
+          className={`px-4 py-2 rounded ${tab === 'signup' ? 'bg-yellow-500 text-black' : 'bg-gray-700 text-white'}`}
           onClick={() => setTab('signup')}
         >
           Sign Up

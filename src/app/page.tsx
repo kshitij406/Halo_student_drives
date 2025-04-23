@@ -5,7 +5,7 @@ import { db } from '@/firebase/firebase.config';
 import { collection, getDocs } from 'firebase/firestore';
 import Link from 'next/link';
 import { Star } from 'lucide-react';
-import { useUser } from './../context/Usercontext';
+import { useUser } from '@/context/Usercontext';
 
 interface Driver {
   id: string;
@@ -19,7 +19,7 @@ export default function HomePage() {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOption, setSortOption] = useState('recent');
-  const { user, setUser } = useUser();
+  const { user } = useUser();
 
   useEffect(() => {
     const fetchDrivers = async () => {
@@ -36,6 +36,7 @@ export default function HomePage() {
       });
       setDrivers(data);
     };
+
     fetchDrivers();
   }, []);
 
@@ -50,16 +51,16 @@ export default function HomePage() {
       return a.name.localeCompare(b.name);
     } else if (sortOption === 'rating') {
       const avgA =
-        Array.isArray(a.ratings) && a.ratings.length > 0
+        a.ratings && a.ratings.length > 0
           ? a.ratings.reduce((sum, r) => sum + r, 0) / a.ratings.length
           : 0;
       const avgB =
-        Array.isArray(b.ratings) && b.ratings.length > 0
+        b.ratings && b.ratings.length > 0
           ? b.ratings.reduce((sum, r) => sum + r, 0) / b.ratings.length
           : 0;
       return avgB - avgA;
     }
-    return 0;
+    return 0; // recent or default
   });
 
   const groupedByService = sortedDrivers.reduce(
@@ -77,11 +78,9 @@ export default function HomePage() {
       <h1 className="text-3xl font-bold">Start Riding Now!</h1>
       <p className="text-gray-400 mb-3">Find a ride service below</p>
 
-      {/* Search Bar with Icon */}
+      {/* Search Bar */}
       <div className="relative mb-4">
-        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white text-lg">
-          🔍
-        </span>
+        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white text-lg">🔍</span>
         <input
           type="text"
           value={searchTerm}
@@ -105,7 +104,7 @@ export default function HomePage() {
         </select>
       </div>
 
-      {/* Grouped Driver Cards by Service */}
+      {/* Driver Cards Grouped by Service */}
       {Object.entries(groupedByService).map(([serviceName, serviceDrivers]) => (
         <div key={serviceName} className="mb-8">
           <h2 className="text-xl font-bold mb-3 capitalize">{serviceName}</h2>
@@ -113,8 +112,7 @@ export default function HomePage() {
           {serviceDrivers.map((driver) => {
             const avgRating =
               driver.ratings && driver.ratings.length > 0
-                ? driver.ratings.reduce((a, b) => a + b, 0) /
-                  driver.ratings.length
+                ? driver.ratings.reduce((sum, r) => sum + r, 0) / driver.ratings.length
                 : 0;
 
             return (
