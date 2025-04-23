@@ -1,45 +1,45 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useUser } from '../../context/Usercontext';
 
 export default function NavLinks() {
   const { user, setUser } = useUser();
+  const pathname = usePathname();
+
+  const linkClass =
+    'px-3 py-2 transition-all duration-200 rounded-xl text-sm sm:text-base font-medium';
+
+  const getLinkStyle = (href: string) => {
+    return pathname === href
+      ? `${linkClass} bg-black text-white`
+      : `${linkClass} hover:bg-black hover:text-white`;
+  };
 
   return (
-    <div className="flex items-center">
-      <Link
-        href="/"
-        className="block h-full px-4 py-2 transition-transform duration-300 ease-in-out transform hover:bg-black hover:text-white hover:scale-110 hover:rounded-3xl"
-      >
+    <div className="flex items-center gap-2 sm:gap-4">
+      <Link href="/" className={getLinkStyle('/')}>
         Home
       </Link>
 
       {!user ? (
-        <Link
-          href="/login"
-          className="block h-full px-4 py-2 transition-transform duration-300 ease-in-out transform hover:bg-black hover:text-white hover:scale-110 hover:rounded-3xl"
-        >
+        <Link href="/login" className={getLinkStyle('/login')}>
           Login
         </Link>
       ) : (
-        <>
-          <button
-            onClick={() => {
-              setUser(null);
-              localStorage.removeItem('user');
-            }}
-            className="block h-full px-4 py-2 transition-transform duration-300 ease-in-out transform hover:bg-red-600 hover:text-white hover:scale-110 hover:rounded-3xl"
-          >
-            Logout
-          </button>
-        </>
+        <button
+          onClick={() => {
+            setUser(null);
+            localStorage.removeItem('user');
+          }}
+          className={`${linkClass} hover:bg-red-600 hover:text-white`}
+        >
+          Logout
+        </button>
       )}
 
-      <Link
-        href="/add-driver"
-        className="block h-full px-4 py-2 mr-3 transition-transform duration-300 ease-in-out transform hover:bg-black hover:text-white hover:scale-110 hover:rounded-3xl"
-      >
+      <Link href="/add-driver" className={getLinkStyle('/add-driver')}>
         Drive
       </Link>
     </div>
