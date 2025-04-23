@@ -30,7 +30,7 @@ export default function NavLinks() {
               setUser(null);
               localStorage.removeItem('user');
             }}
-            className="block h-full px-4 py-2 text-red-400 hover:text-red-600 hover:underline"
+            className="block h-full px-4 py-2 transition-transform duration-300 ease-in-out transform hover:bg-red-600 hover:text-white hover:scale-110 hover:rounded-3xl"
           >
             Logout
           </button>

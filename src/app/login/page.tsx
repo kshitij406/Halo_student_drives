@@ -133,7 +133,7 @@ export default function LoginPage() {
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-80 border border-gray-300 p-2 rounded text-black"
+          className="w-80 border border-gray-300 p-2 rounded text-white"
           required
         />
 
@@ -143,7 +143,7 @@ export default function LoginPage() {
             placeholder="Username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="w-80 border border-gray-300 p-2 rounded text-black"
+            className="w-80 border border-gray-300 p-2 rounded text-white"
             required
           />
         )}
@@ -153,7 +153,7 @@ export default function LoginPage() {
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-80 border border-gray-300 p-2 rounded text-black"
+          className="w-80 border border-gray-300 p-2 rounded text-white"
           required
         />
 
