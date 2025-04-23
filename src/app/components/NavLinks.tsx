@@ -24,7 +24,6 @@ export default function NavLinks() {
         </Link>
       ) : (
         <>
-          <span className="px-4 py-2 text-white">Hi, {user.username}</span>
           <button
             onClick={() => {
               setUser(null);

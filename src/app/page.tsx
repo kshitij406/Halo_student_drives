@@ -5,6 +5,7 @@ import { db } from '@/firebase/firebase.config';
 import { collection, getDocs } from 'firebase/firestore';
 import Link from 'next/link';
 import { Star } from 'lucide-react';
+import { useUser } from './../context/Usercontext';
 
 interface Driver {
   id: string;
@@ -18,6 +19,7 @@ export default function HomePage() {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOption, setSortOption] = useState('recent');
+  const { user, setUser } = useUser();
 
   useEffect(() => {
     const fetchDrivers = async () => {
@@ -71,6 +73,7 @@ export default function HomePage() {
 
   return (
     <main className="p-4 max-w-screen-xl mx-auto text-white">
+      <span className="px-4 py-2 text-white">Hi, {user?.username || 'Guest'}</span>
       <h1 className="text-3xl font-bold">Start Riding Now!</h1>
       <p className="text-gray-400 mb-3">Find a ride service below:</p>
 
