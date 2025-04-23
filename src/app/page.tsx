@@ -75,7 +75,7 @@ export default function HomePage() {
     <main className="p-4 max-w-screen-xl mx-auto text-white">
       <h1 className="px-4 py-2 text-white">Hi, {user?.username || 'Guest'}</h1>
       <h1 className="text-3xl font-bold">Start Riding Now!</h1>
-      <p className="text-gray-400 mb-3">Find a ride service below:</p>
+      <p className="text-gray-400 mb-3">Find a ride service below</p>
 
       {/* Search Bar with Icon */}
       <div className="relative mb-4">
