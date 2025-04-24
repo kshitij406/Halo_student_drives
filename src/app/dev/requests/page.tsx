@@ -47,18 +47,39 @@ export default function DevRequestsPage() {
   }, []);
 
   const handleApproveDriver = async (serviceId: string, driver: Driver) => {
+    const service = services.find((s) => s.id === serviceId);
+    if (!service) return;
+  
+    // 1. Add to approved drivers collection
     const ref = await addDoc(collection(db, "drivers"), {
       ...driver,
-      service: services.find((s) => s.id === serviceId)?.service,
-      ownerEmail: services.find((s) => s.id === serviceId)?.ownerEmail,
+      service: service.service,
+      ownerEmail: service.ownerEmail,
       availability: "Free",
       ratings: [],
       status: "approved",
     });
     await updateDoc(ref, { id: ref.id });
+  
+    // 2. Remove from pendingServices
+    const updatedDrivers = service.drivers.filter((d) => d.licenseNumber !== driver.licenseNumber);
+    const serviceRef = doc(db, "pendingServices", serviceId);
+  
+    if (updatedDrivers.length === 0) {
+      await deleteDoc(serviceRef); // no more drivers, delete service
+      setServices((prev) => prev.filter((s) => s.id !== serviceId));
+    } else {
+      await updateDoc(serviceRef, { drivers: updatedDrivers });
+      setServices((prev) =>
+        prev.map((s) =>
+          s.id === serviceId ? { ...s, drivers: updatedDrivers } : s
+        )
+      );
+    }
+  
     alert(`Approved ${driver.name}`);
   };
-
+  
   const handleRejectDriver = async (serviceId: string, index: number) => {
     const serviceRef = doc(db, "pendingServices", serviceId);
     const service = services.find((s) => s.id === serviceId);
