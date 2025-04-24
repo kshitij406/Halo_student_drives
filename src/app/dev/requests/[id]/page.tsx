@@ -14,6 +14,6 @@ export async function generateMetadata({
   params: { id: string };
 }) {
   return {
-    title: `Driver Approval - ${params.id}`,
+    title: `Driver Approval : ${params.id}`,
   };
 }
