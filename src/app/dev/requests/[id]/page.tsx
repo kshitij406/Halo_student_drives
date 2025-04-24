@@ -1,15 +1,18 @@
 import DriverReviewPageClient from "./ClientPage";
 
-interface PageProps {
+export default function Page({
+  params,
+}: {
   params: { id: string };
-  searchParams?: Record<string, string>;
-}
-
-export default function Page({ params }: PageProps) {
+}) {
   return <DriverReviewPageClient id={params.id} />;
 }
 
-export async function generateMetadata({ params }: PageProps) {
+export async function generateMetadata({
+  params,
+}: {
+  params: { id: string };
+}) {
   return {
     title: `Driver Approval - ${params.id}`,
   };
