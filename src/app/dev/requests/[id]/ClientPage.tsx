@@ -1,16 +1,9 @@
 "use client";
 
+import { getDoc, doc, deleteDoc, addDoc, updateDoc, collection } from "firebase/firestore";
+import { db } from "@/firebase/firebase.config";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { db } from "@/firebase/firebase.config";
-import {
-  getDoc,
-  doc,
-  deleteDoc,
-  addDoc,
-  updateDoc,
-  collection,
-} from "firebase/firestore";
 import { useUser } from "@/context/Usercontext";
 import Image from "next/image";
 
@@ -54,9 +47,7 @@ export default function DriverReviewPageClient({ id }: { id: string }) {
   };
 
   const handleReject = async () => {
-    if (!rejectReason.trim()) {
-      return alert("Please enter a reason.");
-    }
+    if (!rejectReason.trim()) return alert("Please enter a reason.");
     const ref = doc(db, "pendingDrivers", id);
     await updateDoc(ref, {
       status: "rejected",
