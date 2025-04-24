@@ -1,6 +1,7 @@
 import './globals.css';
 import type { Metadata } from 'next';
 import ClientLayout from './ClientLayout';
+import { Analytics } from '@vercel/analytics/react';
 
 export const metadata: Metadata = {
   title: 'Halo',
@@ -14,7 +15,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <ClientLayout>{children}</ClientLayout>
+      <body>
+        <ClientLayout>{children}</ClientLayout>
+        <Analytics />
+      </body>
     </html>
   );
 }
