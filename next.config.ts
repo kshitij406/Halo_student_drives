@@ -6,6 +6,8 @@ const nextConfig: NextConfig = {
   },
   images: {
     domains: ['firebasestorage.googleapis.com'],
+    dangerouslyAllowSVG: true, // ✅ allow base64 and inline SVGs
+    remotePatterns: [], // You can add patterns here if needed later
   },
 };
 

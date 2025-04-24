@@ -1,15 +1,16 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { db } from '@/firebase/firebase.config';
+import { useEffect, useState } from "react";
+import { db } from "@/firebase/firebase.config";
 import {
   collection,
   getDocs,
   deleteDoc,
   addDoc,
   doc,
-  updateDoc
-} from 'firebase/firestore';
+  updateDoc,
+} from "firebase/firestore";
+import Image from "next/image";
 
 interface Driver {
   name: string;
@@ -32,10 +33,10 @@ export default function DevRequestsPage() {
   const [loading, setLoading] = useState(true);
 
   const fetchRequests = async () => {
-    const snapshot = await getDocs(collection(db, 'pendingServices'));
-    const data = snapshot.docs.map(doc => ({
+    const snapshot = await getDocs(collection(db, "pendingServices"));
+    const data = snapshot.docs.map((doc) => ({
       id: doc.id,
-      ...(doc.data() as Omit<PendingService, 'id'>)
+      ...(doc.data() as Omit<PendingService, "id">),
     }));
     setServices(data);
     setLoading(false);
@@ -44,23 +45,23 @@ export default function DevRequestsPage() {
   useEffect(() => {
     fetchRequests();
   }, []);
-  
+
   const handleApproveDriver = async (serviceId: string, driver: Driver) => {
-    const ref = await addDoc(collection(db, 'drivers'), {
+    const ref = await addDoc(collection(db, "drivers"), {
       ...driver,
-      service: services.find(s => s.id === serviceId)?.service,
-      ownerEmail: services.find(s => s.id === serviceId)?.ownerEmail,
-      availability: 'Free',
+      service: services.find((s) => s.id === serviceId)?.service,
+      ownerEmail: services.find((s) => s.id === serviceId)?.ownerEmail,
+      availability: "Free",
       ratings: [],
-      status: 'approved',
+      status: "approved",
     });
-    await updateDoc(ref, { id: ref.id });    
+    await updateDoc(ref, { id: ref.id });
     alert(`Approved ${driver.name}`);
   };
 
   const handleRejectDriver = async (serviceId: string, index: number) => {
-    const serviceRef = doc(db, 'pendingServices', serviceId);
-    const service = services.find(s => s.id === serviceId);
+    const serviceRef = doc(db, "pendingServices", serviceId);
+    const service = services.find((s) => s.id === serviceId);
     if (!service) return;
 
     const updatedDrivers = [...service.drivers];
@@ -68,21 +69,23 @@ export default function DevRequestsPage() {
 
     if (updatedDrivers.length === 0) {
       await deleteDoc(serviceRef);
-      setServices(prev => prev.filter(s => s.id !== serviceId));
+      setServices((prev) => prev.filter((s) => s.id !== serviceId));
     } else {
       await updateDoc(serviceRef, { drivers: updatedDrivers });
-      setServices(prev =>
-        prev.map(s => s.id === serviceId ? { ...s, drivers: updatedDrivers } : s)
+      setServices((prev) =>
+        prev.map((s) =>
+          s.id === serviceId ? { ...s, drivers: updatedDrivers } : s
+        )
       );
     }
 
-    alert('Driver rejected');
+    alert("Driver rejected");
   };
 
   const handleRejectService = async (serviceId: string) => {
-    await deleteDoc(doc(db, 'pendingServices', serviceId));
-    setServices(services.filter(s => s.id !== serviceId));
-    alert('Service rejected.');
+    await deleteDoc(doc(db, "pendingServices", serviceId));
+    setServices(services.filter((s) => s.id !== serviceId));
+    alert("Service rejected.");
   };
 
   return (
@@ -94,21 +97,56 @@ export default function DevRequestsPage() {
       ) : services.length === 0 ? (
         <p className="text-gray-400">No pending requests found.</p>
       ) : (
-        services.map(service => (
-          <div key={service.id} className="border border-gray-600 p-4 rounded mb-6 bg-black">
-            <h2 className="text-xl font-semibold text-yellow-400">{service.service}</h2>
-            <p className="text-sm text-gray-400">Submitted by: {service.ownerEmail}</p>
-            <p className="text-sm text-gray-400 mb-4">Date: {new Date(service.submittedAt).toLocaleString()}</p>
+        services.map((service) => (
+          <div
+            key={service.id}
+            className="border border-gray-600 p-4 rounded mb-6 bg-black"
+          >
+            <h2 className="text-xl font-semibold text-yellow-400">
+              {service.service}
+            </h2>
+            <p className="text-sm text-gray-400">
+              Submitted by: {service.ownerEmail}
+            </p>
+            <p className="text-sm text-gray-400 mb-4">
+              Date: {new Date(service.submittedAt).toLocaleString()}
+            </p>
 
             {service.drivers.map((driver, i) => (
               <div key={i} className="mb-4 p-3 bg-gray-900 rounded">
-                <p><strong>Name:</strong> {driver.name}</p>
-                <p><strong>Phone:</strong> {driver.phone}</p>
-                <p><strong>License No:</strong> {driver.licenseNumber}</p>
-                <p><strong>Prices:</strong></p>
+                <p>
+                  <strong>Name:</strong> {driver.name}
+                </p>
+                <p>
+                  <strong>Phone:</strong> {driver.phone}
+                </p>
+                <p>
+                  <strong>License No:</strong> {driver.licenseNumber}
+                </p>
+
+                {driver.licenseImageBase64 && (
+                  <div className="mt-2">
+                    <p>
+                      <strong>License Image:</strong>
+                    </p>
+                    <Image
+                      src={`data:image/png;base64,${driver.licenseImageBase64}`}
+                      alt="License Preview"
+                      width={300}
+                      height={200}
+                      className="mt-2 max-w-xs border border-gray-700 rounded"
+                    />
+                  </div>
+                )}
+
+                <p className="mt-2">
+                  <strong>Prices:</strong>
+                </p>
                 <ul className="list-disc list-inside text-sm">
                   {driver.priceList.map((p, idx) => (
-                    <li key={idx}>{p.location}: Rs {p.price}</li>
+                    <li key={idx}>
+                      {p.location}: Rs {p.price}
+                    </li>
                   ))}
                 </ul>
                 <div className="mt-2 flex gap-4">
