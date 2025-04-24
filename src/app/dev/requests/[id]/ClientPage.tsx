@@ -26,25 +26,37 @@ export default function DriverReviewPageClient({ id }: { id: string }) {
 
   useEffect(() => {
     const fetchDriver = async () => {
-      const ref = doc(db, "pendingDrivers", id);
-      const snap = await getDoc(ref);
-      if (snap.exists()) setDriver(snap.data() as Driver);
+      try {
+        const ref = doc(db, "pendingDrivers", id);
+        const snap = await getDoc(ref);
+        if (snap.exists()) {
+          setDriver(snap.data() as Driver);
+        } else {
+          router.push("/dev/requests"); // redirect if driver not found
+        }
+      } catch (err) {
+        console.error("Error fetching driver:", err);
+      }
     };
     fetchDriver();
-  }, [id]);
+  }, [id, router]); // ✅ include router here
+  
+  
 
   const handleApprove = async () => {
     if (!driver) return;
-    const ref = doc(db, "pendingDrivers", id);
-    await addDoc(collection(db, "drivers"), {
+    const driversRef = collection(db, "drivers");
+    const docRef = await addDoc(driversRef, {
       ...driver,
       approved: true,
       availability: "Free",
       ratings: [],
     });
-    await deleteDoc(ref);
+    await updateDoc(docRef, { id: docRef.id }); // ✅ add ID to doc
+    await deleteDoc(doc(db, "pendingDrivers", id));
     router.push("/dev/requests");
   };
+  
 
   const handleReject = async () => {
     if (!rejectReason.trim()) return alert("Please enter a reason.");
