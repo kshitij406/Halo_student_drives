@@ -195,15 +195,15 @@ export default function AddDriverForm() {
   return (
     <div className="max-w-2xl mx-auto p-6 text-white">
       <div className="flex justify-center">
-      <div className="flex items-center space-x-6">
+      <div className="flex items-center">
       <Image
         className="object-contain"
-        src="/transparent-white-logo.png"
+        src="/white-car-transparent.png"
         alt="Logo"
-        width={100}
-        height={100}
+        width={150}
+        height={150}
       />
-      <h2 className="text-2xl font-bold mb-4 text-center">Create Your Driver Profile</h2>
+      <h2 className="text-2xl font-bold text-center">Create Your Driver Profile</h2>
       </div>
       </div>
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -256,46 +256,48 @@ export default function AddDriverForm() {
               <p className="text-yellow-400 text-sm mt-1">Processing license image...</p>
             )}
 
-            <div className="mt-3">
-              <label className="block mb-1 font-bold mt-10">Prices</label>
+            <div className="mt-6 w-full">
+              <label className="block mb-2 font-bold">Prices</label>
               {driver.priceList.map((entry, priceIndex) => (
-                <div key={priceIndex} className="flex gap-2 mb-2">
+                <div key={priceIndex} className="flex flex-col md:flex-row md:items-center gap-2 mb-2">
                   <input
                     type="text"
                     placeholder="Location"
                     value={entry.location}
                     onChange={(e) => handlePriceChange(driverIndex, priceIndex, "location", e.target.value)}
-                    className="flex-1 p-2 rounded bg-gray-800"
+                    className="w-full md:flex-1 p-2 rounded bg-gray-800 text-white"
                   />
                   <input
                     type="text"
                     placeholder="Price (MUR)"
                     value={entry.price}
                     onChange={(e) => handlePriceChange(driverIndex, priceIndex, "price", e.target.value)}
-                    className="w-28 p-2 rounded bg-gray-800"
+                    className="w-full md:w-28 p-2 rounded bg-gray-800 text-white"
                   />
                   <button
                     type="button"
                     onClick={() => removePriceEntry(driverIndex, priceIndex)}
-                    className="px-4 bg-yellow-500 rounded hover:bg-red-700 font-bold text-black hover:text-white"
+                    className="w-full md:w-auto px-4 py-2 bg-yellow-500 rounded hover:bg-red-700 font-bold text-black hover:text-white"
                   >
                     X
                   </button>
                 </div>
               ))}
+
               <button
                 type="button"
                 onClick={() => addPriceEntry(driverIndex)}
-                className="w-full py-1 outline-2 outline-yellow-500 text-white font-bold rounded hover:bg-yellow-300 hover:text-black"
+                className="w-full py-2 mt-1 bg-yellow-500 font-bold rounded text-black hover:bg-yellow-300"
               >
                 +
               </button>
             </div>
 
+
             <button
               type="button"
               onClick={() => removeDriver(driverIndex)}
-              className="w-full mt-2 text-center py-1 bg-yellow-500 text-black font-bold rounded hover:bg-yellow-300"
+              className="w-full mt-2 text-center py-2 bg-yellow-500 text-black font-bold rounded hover:bg-red-700 hover:text-white"
             >
                Remove This Driver
             </button>
