@@ -1,19 +1,10 @@
-'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { db } from '@/firebase/firebase.config';
-import {
-  getDoc,
-  doc,
-  deleteDoc,
-  addDoc,
-  updateDoc,
-  collection,
-} from 'firebase/firestore';
-
-import { useUser } from '@/context/Usercontext';
-import Image from 'next/image';
+import { getDoc, doc, deleteDoc, addDoc, updateDoc, collection } from "firebase/firestore";
+import { db } from "@/firebase/firebase.config";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useUser } from "@/context/Usercontext";
+import Image from "next/image";
 
 interface Driver {
   name: string;
@@ -22,7 +13,7 @@ interface Driver {
   licenseImageBase64?: string;
   service: string;
   priceList?: { location: string; price: string }[];
-  status: 'pending' | 'approved' | 'rejected';
+  status: "pending" | "approved" | "rejected";
   rejectionReason?: string;
 }
 
@@ -30,11 +21,11 @@ export default function DriverReviewPage({ params }: { params: { id: string } })
   const { user } = useUser();
   const router = useRouter();
   const [driver, setDriver] = useState<Driver | null>(null);
-  const [rejectReason, setRejectReason] = useState('');
+  const [rejectReason, setRejectReason] = useState("");
 
   useEffect(() => {
     const fetchDriver = async () => {
-      const ref = doc(db, 'pendingDrivers', params.id);
+      const ref = doc(db, "pendingDrivers", params.id);
       const snap = await getDoc(ref);
       if (snap.exists()) setDriver(snap.data() as Driver);
     };
@@ -44,28 +35,28 @@ export default function DriverReviewPage({ params }: { params: { id: string } })
 
   const handleApprove = async () => {
     if (!driver) return;
-    const ref = doc(db, 'pendingDrivers', params.id);
-    await addDoc(collection(db, 'drivers'), {
+    const ref = doc(db, "pendingDrivers", params.id);
+    await addDoc(collection(db, "drivers"), {
       ...driver,
       approved: true,
-      availability: 'Free',
+      availability: "Free",
       ratings: [],
     });
     await deleteDoc(ref);
-    router.push('/dev/requests');
+    router.push("/dev/requests");
   };
 
   const handleReject = async () => {
-    if (!rejectReason.trim()) return alert('Please enter a reason.');
-    const ref = doc(db, 'pendingDrivers', params.id);
+    if (!rejectReason.trim()) return alert("Please enter a reason.");
+    const ref = doc(db, "pendingDrivers", params.id);
     await updateDoc(ref, {
-      status: 'rejected',
+      status: "rejected",
       rejectionReason: rejectReason,
     });
-    router.push('/dev/requests');
+    router.push("/dev/requests");
   };
 
-  if (user?.role !== 'dev') {
+  if (user?.role !== "dev") {
     return (
       <main className="p-10 text-red-500 font-bold text-xl text-center">
         Access Denied
