@@ -47,6 +47,11 @@ export default function ServicePage() {
     fetchDrivers();
   }, [slug]);
 
+  const formatPhoneForWhatsApp = (phone: string) => {
+    // Remove any non-numeric characters
+    return phone.replace(/\D/g, '');
+  };
+
   return (
     <div className="p-6 text-white">
       <h1 className="text-2xl font-bold mb-4 capitalize">{slug} Drivers</h1>
@@ -56,6 +61,9 @@ export default function ServicePage() {
         const avgRating = ratings.length
           ? ratings.reduce((sum, r) => sum + r, 0) / ratings.length
           : 0;
+
+        const waPhone = formatPhoneForWhatsApp(driver.phone);
+        const waLink = `https://wa.me/${waPhone}`;
 
         return (
           <Link key={driver.id} href={`/driver/${driver.id}`} className="block mb-4">
@@ -69,7 +77,8 @@ export default function ServicePage() {
               </div>
               <p className="italic text-sm text-gray-600">Service: {driver.service}</p>
               <p className="text-sm">Phone: {driver.phone}</p>
-              <div className="flex mt-1 gap-1">
+
+              <div className="flex items-center gap-3 mt-1">
                 <span
                   className={`text-sm ${
                     driver.availability === 'Free' ? 'text-green-500' : 'text-red-500'
@@ -77,6 +86,16 @@ export default function ServicePage() {
                 >
                   {driver.availability}
                 </span>
+
+                {/* WhatsApp Button */}
+                <a
+                  href={waLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1 rounded-full transition"
+                >
+                  Chat on WhatsApp
+                </a>
               </div>
 
               {driver.priceList.length > 0 && (
