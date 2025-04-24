@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { db } from "@/firebase/firebase.config";
 import {
-  doc,
   getDoc,
+  doc,
   deleteDoc,
   addDoc,
   updateDoc,
@@ -54,7 +54,9 @@ export default function DriverReviewPageClient({ id }: { id: string }) {
   };
 
   const handleReject = async () => {
-    if (!rejectReason.trim()) return alert("Please enter a reason.");
+    if (!rejectReason.trim()) {
+      return alert("Please enter a reason.");
+    }
     const ref = doc(db, "pendingDrivers", id);
     await updateDoc(ref, {
       status: "rejected",
@@ -71,26 +73,17 @@ export default function DriverReviewPageClient({ id }: { id: string }) {
     );
   }
 
-  if (!driver) {
+  if (!driver)
     return <main className="p-10 text-gray-400 text-center">Loading...</main>;
-  }
 
   return (
     <div className="max-w-2xl mx-auto p-6 text-white">
       <h2 className="text-2xl font-bold mb-4">Review Driver Profile</h2>
       <div className="border border-gray-600 bg-black p-4 rounded">
-        <p>
-          <strong>Name:</strong> {driver.name}
-        </p>
-        <p>
-          <strong>Phone:</strong> {driver.phone}
-        </p>
-        <p>
-          <strong>License:</strong> {driver.licenseNumber}
-        </p>
-        <p>
-          <strong>Service:</strong> {driver.service}
-        </p>
+        <p><strong>Name:</strong> {driver.name}</p>
+        <p><strong>Phone:</strong> {driver.phone}</p>
+        <p><strong>License:</strong> {driver.licenseNumber}</p>
+        <p><strong>Service:</strong> {driver.service}</p>
 
         {driver.licenseImageBase64 && (
           <div className="mt-2">
@@ -101,7 +94,6 @@ export default function DriverReviewPageClient({ id }: { id: string }) {
               width={300}
               height={200}
               className="mt-2 w-full max-w-xs border rounded"
-              unoptimized // Required for base64 strings
             />
           </div>
         )}
@@ -111,9 +103,7 @@ export default function DriverReviewPageClient({ id }: { id: string }) {
             <strong>Prices:</strong>
             <ul className="list-disc pl-6 text-sm">
               {driver.priceList.map((entry, i) => (
-                <li key={i}>
-                  {entry.location}: MUR {entry.price}
-                </li>
+                <li key={i}>{entry.location}: MUR {entry.price}</li>
               ))}
             </ul>
           </div>
