@@ -167,6 +167,7 @@ export default function AddDriverForm() {
       });
 
       setSuccessMessage("Service and drivers submitted for admin approval.");
+      setSubmitting(true);
       setFormData({
         service: "",
         drivers: [
