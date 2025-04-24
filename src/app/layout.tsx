@@ -4,7 +4,7 @@ import ClientLayout from './ClientLayout';
 
 export const metadata: Metadata = {
   title: 'Halo',
-  description: 'A student driver contact app',
+  description: 'A student driver ride finding app',
 };
 
 export default function RootLayout({
