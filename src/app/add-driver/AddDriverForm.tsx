@@ -279,9 +279,10 @@ export default function AddDriverForm() {
                     onClick={() => removePriceEntry(driverIndex, priceIndex)}
                     className="w-full md:w-auto px-4 py-2 bg-yellow-500 rounded hover:bg-red-700 font-bold text-black hover:text-white"
                   >
-                    X
+                    Remove Price
                   </button>
                 </div>
+                
               ))}
 
               <button
@@ -289,7 +290,7 @@ export default function AddDriverForm() {
                 onClick={() => addPriceEntry(driverIndex)}
                 className="w-full py-2 mt-1 bg-yellow-500 font-bold rounded text-black hover:bg-yellow-300"
               >
-                +
+                Add Price
               </button>
             </div>
 
