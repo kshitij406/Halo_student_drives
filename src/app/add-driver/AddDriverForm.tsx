@@ -326,7 +326,7 @@ export default function AddDriverForm() {
         </button>
         </div>
 
-        {successMessage && <p className="text-green-400 text-sm mt-2">{successMessage}</p>}
+        {successMessage && <p className="text-green-400 font-bold text-sm mt-2">{successMessage}</p>}
       </form>
     </div>
   );
