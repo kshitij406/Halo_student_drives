@@ -265,14 +265,14 @@ export default function AddDriverForm() {
                     placeholder="Location"
                     value={entry.location}
                     onChange={(e) => handlePriceChange(driverIndex, priceIndex, "location", e.target.value)}
-                    className="w-full md:flex-1 p-2 rounded bg-gray-800 text-white"
+                    className="w-full md:flex-1 p-2 rounded bg-black border border-gray-700 text-white"
                   />
                   <input
                     type="text"
                     placeholder="Price (MUR)"
                     value={entry.price}
                     onChange={(e) => handlePriceChange(driverIndex, priceIndex, "price", e.target.value)}
-                    className="w-full md:w-28 p-2 rounded bg-gray-800 text-white"
+                    className="w-full md:w-28 p-2 rounded bg-black border border-gray-700 text-white"
                   />
                   <button
                     type="button"
