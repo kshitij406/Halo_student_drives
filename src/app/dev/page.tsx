@@ -46,13 +46,15 @@ export default function DevRequestsPage() {
   }, []);
   
   const handleApproveDriver = async (serviceId: string, driver: Driver) => {
-    await addDoc(collection(db, 'drivers'), {
+    const ref = await addDoc(collection(db, 'drivers'), {
       ...driver,
       service: services.find(s => s.id === serviceId)?.service,
       ownerEmail: services.find(s => s.id === serviceId)?.ownerEmail,
       availability: 'Free',
-      ratings: []
+      ratings: [],
+      status: 'approved',
     });
+    await updateDoc(ref, { id: ref.id });    
     alert(`Approved ${driver.name}`);
   };
 
