@@ -1,7 +1,5 @@
 'use client';
 import { useEffect, useState } from 'react';
-
-// ✅ Define props type
 interface LoadingScreenProps {
   show: boolean;
 }

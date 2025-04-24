@@ -4,6 +4,7 @@ import { useState } from "react";
 import { db } from "@/firebase/firebase.config";
 import { collection, addDoc } from "firebase/firestore";
 import { useUser } from "@/context/Usercontext";
+import Image from 'next/image';
 
 interface PriceEntry {
   location: string;
@@ -193,14 +194,26 @@ export default function AddDriverForm() {
 
   return (
     <div className="max-w-2xl mx-auto p-6 text-white">
-      <h2 className="text-2xl font-bold mb-4">Request Driver Listing</h2>
+      <div className="flex justify-center">
+      <div className="flex items-center space-x-6">
+      <Image
+        className="object-contain"
+        src="/transparent-white-logo.png"
+        alt="Logo"
+        width={100}
+        height={100}
+      />
+      <h2 className="text-2xl font-bold mb-4 text-center">Create Your Driver Profile</h2>
+      </div>
+      </div>
       <form onSubmit={handleSubmit} className="space-y-6">
         <input
           type="text"
           placeholder="Service Name"
           value={formData.service}
           onChange={(e) => setFormData({ ...formData, service: e.target.value })}
-          className="w-full p-2 rounded bg-gray-800"
+          className="w-full pl-10 pr-4 py-3 rounded border border-gray-700 bg-black text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+            
           required
         />
 
@@ -211,7 +224,7 @@ export default function AddDriverForm() {
               placeholder="Driver Name"
               value={driver.name}
               onChange={(e) => handleDriverChange(driverIndex, "name", e.target.value)}
-              className="w-full p-2 rounded bg-gray-800 mb-2"
+              className="w-full pl-10 pr-4 py-3 rounded border border-gray-700 bg-black text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400"
               required
             />
             <input
@@ -219,7 +232,7 @@ export default function AddDriverForm() {
               placeholder="Phone Number"
               value={driver.phone}
               onChange={(e) => handleDriverChange(driverIndex, "phone", e.target.value)}
-              className={`w-full p-2 rounded bg-gray-800 mb-1 ${phoneErrors[driverIndex] ? "border border-red-500" : ""}`}
+              className={`w-full py-3 pl-10 pr-4 mt-4 rounded border border-gray-700 bg-black text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 ${phoneErrors[driverIndex] ? "focus:ring-0 border-2 border-red-500" : ""}`}
               required
             />
             {phoneErrors[driverIndex] && (
@@ -230,7 +243,7 @@ export default function AddDriverForm() {
               placeholder="License Number"
               value={driver.licenseNumber}
               onChange={(e) => handleDriverChange(driverIndex, "licenseNumber", e.target.value)}
-              className="w-full p-2 rounded bg-gray-800 mb-2"
+              className="w-full py-3 pl-10 pr-4 mt-4 rounded black mb-2 border border-gray-700"
               required
             />
             <input
@@ -244,7 +257,7 @@ export default function AddDriverForm() {
             )}
 
             <div className="mt-3">
-              <label className="block mb-1">Prices</label>
+              <label className="block mb-1 font-bold mt-10">Prices</label>
               {driver.priceList.map((entry, priceIndex) => (
                 <div key={priceIndex} className="flex gap-2 mb-2">
                   <input
@@ -264,50 +277,50 @@ export default function AddDriverForm() {
                   <button
                     type="button"
                     onClick={() => removePriceEntry(driverIndex, priceIndex)}
-                    className="px-2 bg-red-600 rounded hover:bg-red-700"
+                    className="px-4 bg-yellow-500 rounded hover:bg-red-700 font-bold text-black hover:text-white"
                   >
-                    ✕
+                    X
                   </button>
                 </div>
               ))}
               <button
                 type="button"
                 onClick={() => addPriceEntry(driverIndex)}
-                className="mt-1 px-4 py-1 bg-yellow-400 text-black rounded hover:bg-yellow-300"
+                className="w-full py-1 outline-2 outline-yellow-500 text-white font-bold rounded hover:bg-yellow-300 hover:text-black"
               >
-                + Add Price
+                +
               </button>
             </div>
 
             <button
               type="button"
               onClick={() => removeDriver(driverIndex)}
-              className="mt-4 text-sm text-red-400 hover:underline"
+              className="w-full mt-2 text-center py-1 bg-yellow-500 text-black font-bold rounded hover:bg-yellow-300"
             >
-              ✕ Remove This Driver
+               Remove This Driver
             </button>
           </div>
         ))}
-
+      <div className="text-center flex space-x-1 justify-center">
         <button
           type="button"
           onClick={addDriver}
-          className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded"
+          className=" w-full bg-yellow-500 hover:bg-yellow-300 text-black font-bold  rounded"
         >
           + Add Another Driver
         </button>
-
         <button
           type="submit"
           disabled={submitting || formData.drivers.some((d) => d.uploading)}
-          className={`w-full py-2 rounded font-semibold ${
+          className={`bg-yellow-500 text-black w-full py-2 rounded font-semibold ${
             submitting || formData.drivers.some((d) => d.uploading)
               ? "bg-gray-500 cursor-not-allowed"
-              : "bg-green-600 hover:bg-green-700"
+              : "bg-green-600 hover:bg-green-700 hover:text-white"
           }`}
         >
           {submitting ? "Submitting..." : "Submit for Admin Approval"}
         </button>
+        </div>
 
         {successMessage && <p className="text-green-400 text-sm mt-2">{successMessage}</p>}
       </form>

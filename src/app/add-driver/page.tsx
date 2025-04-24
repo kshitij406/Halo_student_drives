@@ -9,8 +9,7 @@ import LoadingScreen from '../components/LoadingScreen';
 export default function AddDriverPage() {
   const { user } = useUser();
   const router = useRouter();
-  const [pageLoading, setPageLoading] = useState(true); // controls initial loader
-
+  const [pageLoading, setPageLoading] = useState(true); 
   useEffect(() => {
     const timeout = setTimeout(() => {
       if (!user) {
@@ -28,7 +27,6 @@ export default function AddDriverPage() {
       <LoadingScreen show={pageLoading} />
       {!pageLoading && (
         <main className="p-6 text-white">
-          <h1 className="text-2xl font-bold mb-4">Add Driver</h1>
           <AddDriverForm />
         </main>
       )}
