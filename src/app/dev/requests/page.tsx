@@ -1,3 +1,5 @@
+// ✅ Updated: /dev/requests reads from pendingServices and allows per-driver approval
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -5,188 +7,127 @@ import { db } from "@/firebase/firebase.config";
 import {
   collection,
   getDocs,
-  getDoc,
-  updateDoc,
-  deleteDoc,
   addDoc,
-  doc,
-  query,
-  where,
+  deleteDoc,
+  doc
 } from "firebase/firestore";
 
-import Image from "next/image";
-import { useUser } from "@/context/Usercontext";
-
 interface Driver {
-  id: string;
   name: string;
   phone: string;
   licenseNumber: string;
-  licenseImageUrl?: string;
-  service: string;
-  priceList?: { location: string; price: string }[];
-  status: "pending" | "approved" | "rejected";
-  rejectionReason?: string;
+  licenseImageBase64?: string;
+  priceList: { location: string; price: string }[];
 }
 
-export default function ReviewRequestsPage() {
-  const { user } = useUser();
-  const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [filter, setFilter] = useState<"pending" | "approved" | "rejected">(
-    "pending"
-  );
-  const [rejectReason, setRejectReason] = useState("");
+interface PendingService {
+  id: string;
+  service: string;
+  ownerEmail: string;
+  submittedAt: string;
+  drivers: Driver[];
+}
+
+export default function DevRequestsPage() {
+  const [services, setServices] = useState<PendingService[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchRequests = async () => {
+    const snapshot = await getDocs(collection(db, "pendingServices"));
+    const data = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...(doc.data() as Omit<PendingService, "id">),
+    }));
+    setServices(data);
+    setLoading(false);
+  };
 
   useEffect(() => {
-    const fetchDrivers = async () => {
-      const q = query(
-        collection(db, "pendingDrivers"),
-        where("status", "==", filter)
-      );
-      const snapshot = await getDocs(q);
-      const drivers = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...(doc.data() as Omit<Driver, "id">),
-      }));
-      setDrivers(drivers);
-    };
+    fetchRequests();
+  }, []);
 
-    fetchDrivers();
-  }, [filter]);
+  const handleApproveDriver = async (serviceId: string, driverIndex: number) => {
+    const service = services.find((s) => s.id === serviceId);
+    if (!service) return;
 
-  const handleApprove = async (driverId: string) => {
-    try {
-      const pendingRef = doc(db, "pendingDrivers", driverId);
-      const pendingSnap = await getDoc(pendingRef);
-
-      if (pendingSnap.exists()) {
-        const driverData = pendingSnap.data();
-
-        await addDoc(collection(db, "drivers"), {
-          ...driverData,
-          approved: true,
-          availability: "Free",
-          ratings: [],
-        });
-
-        await deleteDoc(pendingRef);
-
-        setDrivers((prev) => prev.filter((d) => d.id !== driverId));
-      }
-    } catch (err) {
-      console.error("Approval failed:", err);
-    }
-  };
-
-  const handleReject = async (driverId: string) => {
-    if (!rejectReason.trim()) {
-      alert("Please enter a reason for rejection.");
-      return;
-    }
-    await updateDoc(doc(db, "pendingDrivers", driverId), {
-      status: "rejected",
-      rejectionReason: rejectReason,
+    const driver = service.drivers[driverIndex];
+    await addDoc(collection(db, "drivers"), {
+      ...driver,
+      service: service.service,
+      ownerEmail: service.ownerEmail,
+      availability: "Free",
+      ratings: [],
     });
-    setRejectReason("");
-    setDrivers((prev) => prev.filter((d) => d.id !== driverId));
+
+    // Remove the driver from the service list
+    const updatedDrivers = service.drivers.filter((_, i) => i !== driverIndex);
+
+    if (updatedDrivers.length === 0) {
+      await deleteDoc(doc(db, "pendingServices", serviceId));
+      setServices((prev) => prev.filter((s) => s.id !== serviceId));
+    } else {
+      const updatedServices = services.map((s) =>
+        s.id === serviceId ? { ...s, drivers: updatedDrivers } : s
+      );
+      setServices(updatedServices);
+    }
   };
 
-  if (user?.role !== "dev") {
-    return (
-      <main className="p-10 text-center text-red-500 font-bold text-xl">
-        Access Denied. Only developers can view this page.
-      </main>
-    );
-  }
+  const handleRejectService = async (serviceId: string) => {
+    await deleteDoc(doc(db, "pendingServices", serviceId));
+    setServices(services.filter((s) => s.id !== serviceId));
+  };
 
   return (
-    <div className="p-6 max-w-3xl mx-auto text-white">
-      <h2 className="text-2xl font-bold mb-4">Driver Approval Requests</h2>
+    <div className="p-6 text-white max-w-5xl mx-auto">
+      <h1 className="text-2xl font-bold mb-6">🧾 Pending Service Approvals</h1>
 
-      <select
-        className="mb-6 px-3 py-2 bg-black border border-gray-600 rounded text-white"
-        value={filter}
-        onChange={(e) =>
-          setFilter(e.target.value as "pending" | "approved" | "rejected")
-        }
-      >
-        <option value="pending">Pending</option>
-        <option value="approved">Approved</option>
-        <option value="rejected">Rejected</option>
-      </select>
-
-      {drivers.length === 0 ? (
-        <p className="text-gray-400">No {filter} drivers.</p>
+      {loading ? (
+        <p className="text-gray-400">Loading...</p>
+      ) : services.length === 0 ? (
+        <p className="text-gray-400">No pending requests found.</p>
       ) : (
-        drivers.map((driver) => (
-          <div
-            key={driver.id}
-            className="border border-gray-700 rounded-lg p-4 mb-6 bg-black"
-          >
-            <p>
-              <strong>Name:</strong> {driver.name}
-            </p>
-            <p>
-              <strong>Phone:</strong> {driver.phone}
-            </p>
-            <p>
-              <strong>License:</strong> {driver.licenseNumber}
-            </p>
-            <p>
-              <strong>Service:</strong> {driver.service}
+        services.map((service) => (
+          <div key={service.id} className="border border-gray-600 p-4 rounded mb-6 bg-black">
+            <h2 className="text-xl font-semibold text-yellow-400">{service.service}</h2>
+            <p className="text-sm text-gray-400">Submitted by: {service.ownerEmail}</p>
+            <p className="text-sm text-gray-400 mb-4">
+              Date: {new Date(service.submittedAt).toLocaleString()}
             </p>
 
-            {driver.licenseImageUrl && (
-              <Image
-                src={driver.licenseImageUrl}
-                alt="License"
-                width={300}
-                height={200}
-                className="rounded border mt-2"
-              />
-            )}
-
-            {driver.priceList && driver.priceList.length > 0 && (
-              <div className="mt-3">
-                <strong>Prices:</strong>
-                <ul className="list-disc pl-6 text-sm">
-                  {driver.priceList.map((entry, i) => (
-                    <li key={i}>
-                      {entry.location}: MUR {entry.price}
-                    </li>
+            {service.drivers.map((driver, i) => (
+              <div key={i} className="mb-4 p-3 bg-gray-900 rounded">
+                <p><strong>Name:</strong> {driver.name}</p>
+                <p><strong>Phone:</strong> {driver.phone}</p>
+                <p><strong>License No:</strong> {driver.licenseNumber}</p>
+                {driver.licenseImageBase64 && (
+                  <img
+                    src={`data:image/png;base64,${driver.licenseImageBase64}`}
+                    alt="License"
+                    className="rounded mt-2 border max-w-xs"
+                  />
+                )}
+                <p className="mt-2 font-semibold">Prices:</p>
+                <ul className="list-disc list-inside text-sm">
+                  {driver.priceList.map((entry, idx) => (
+                    <li key={idx}>{entry.location}: Rs {entry.price}</li>
                   ))}
                 </ul>
-              </div>
-            )}
-
-            {filter === "pending" && (
-              <div className="mt-4">
                 <button
-                  onClick={() => handleApprove(driver.id)}
-                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded mr-2"
+                  onClick={() => handleApproveDriver(service.id, i)}
+                  className="mt-3 text-green-400 text-sm underline hover:text-green-300"
                 >
-                  ✅ Approve
-                </button>
-                <input
-                  placeholder="Reason for rejection"
-                  value={rejectReason}
-                  onChange={(e) => setRejectReason(e.target.value)}
-                  className="bg-gray-800 border border-gray-600 rounded px-3 py-1 text-white mr-2"
-                />
-                <button
-                  onClick={() => handleReject(driver.id)}
-                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
-                >
-                  ❌ Reject
+                  ✅ Approve Driver
                 </button>
               </div>
-            )}
+            ))}
 
-            {filter === "rejected" && (
-              <p className="text-red-400 mt-2 text-sm">
-                🛑 Reason: {driver.rejectionReason}
-              </p>
-            )}
+            <button
+              onClick={() => handleRejectService(service.id)}
+              className="text-red-400 text-sm mt-3 underline hover:text-red-500"
+            >
+              ❌ Reject Entire Service
+            </button>
           </div>
         ))
       )}

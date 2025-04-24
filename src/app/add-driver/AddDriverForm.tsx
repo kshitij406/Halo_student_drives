@@ -1,13 +1,9 @@
-// File: src/app/add-driver/AddDriverForm.tsx
-
 "use client";
 
 import { useState } from "react";
 import { db } from "@/firebase/firebase.config";
 import { collection, addDoc } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { storage } from "@/firebase/firebase.config";
-import axios from "axios";
+import { useUser } from "@/context/Usercontext";
 
 interface PriceEntry {
   location: string;
@@ -18,7 +14,7 @@ interface Driver {
   name: string;
   phone: string;
   licenseNumber: string;
-  licenseImageUrl?: string;
+  licenseImageBase64?: string;
   priceList: PriceEntry[];
   uploading: boolean;
 }
@@ -34,6 +30,7 @@ const isValidPhoneNumber = (phone: string): boolean => {
 };
 
 export default function AddDriverForm() {
+  const { user } = useUser();
   const [formData, setFormData] = useState<FormData>({
     service: "",
     drivers: [
@@ -41,7 +38,7 @@ export default function AddDriverForm() {
         name: "",
         phone: "",
         licenseNumber: "",
-        licenseImageUrl: "",
+        licenseImageBase64: "",
         priceList: [{ location: "", price: "" }],
         uploading: false,
       },
@@ -52,11 +49,7 @@ export default function AddDriverForm() {
   const [submitting, setSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
-  const handleDriverChange = (
-    index: number,
-    field: keyof Omit<Driver, "priceList">,
-    value: string
-  ) => {
+  const handleDriverChange = (index: number, field: keyof Omit<Driver, "priceList">, value: string) => {
     const updated = [...formData.drivers];
     (updated[index][field] as string) = value;
 
@@ -69,14 +62,21 @@ export default function AddDriverForm() {
     setFormData({ ...formData, drivers: updated });
   };
 
-  const handlePriceChange = (
-    driverIndex: number,
-    priceIndex: number,
-    field: keyof PriceEntry,
-    value: string
-  ) => {
+  const handlePriceChange = (driverIndex: number, priceIndex: number, field: keyof PriceEntry, value: string) => {
     const updated = [...formData.drivers];
     updated[driverIndex].priceList[priceIndex][field] = value;
+    setFormData({ ...formData, drivers: updated });
+  };
+
+  const addPriceEntry = (driverIndex: number) => {
+    const updated = [...formData.drivers];
+    updated[driverIndex].priceList.push({ location: "", price: "" });
+    setFormData({ ...formData, drivers: updated });
+  };
+
+  const removePriceEntry = (driverIndex: number, priceIndex: number) => {
+    const updated = [...formData.drivers];
+    updated[driverIndex].priceList.splice(priceIndex, 1);
     setFormData({ ...formData, drivers: updated });
   };
 
@@ -89,7 +89,7 @@ export default function AddDriverForm() {
           name: "",
           phone: "",
           licenseNumber: "",
-          licenseImageUrl: "",
+          licenseImageBase64: "",
           priceList: [{ location: "", price: "" }],
           uploading: false,
         },
@@ -106,65 +106,33 @@ export default function AddDriverForm() {
     setPhoneErrors(phoneErrors.filter((_, i) => i !== index));
   };
 
-  const addPriceEntry = (driverIndex: number) => {
-    const updated = [...formData.drivers];
-    updated[driverIndex].priceList.push({ location: "", price: "" });
-    setFormData({ ...formData, drivers: updated });
-  };
-
-  const removePriceEntry = (driverIndex: number, priceIndex: number) => {
-    const updated = [...formData.drivers];
-    updated[driverIndex].priceList.splice(priceIndex, 1);
-    setFormData({ ...formData, drivers: updated });
-  };
-
-  const verifyLicenseWithIDAnalyzer = async (file: File) => {
-    const payload = new FormData();
-    payload.append("file", file);
-    const response = await axios.post("/api/verifyLicence", payload);
-    return response.data;
-  };
-
-  const handleLicenseImageUpload = async (driverIndex: number, file?: File) => {
+  const handleLicenseImageUpload = (driverIndex: number, file?: File) => {
     if (!file) return;
 
-    const updated = [...formData.drivers];
-    updated[driverIndex].uploading = true;
-    setFormData({ ...formData, drivers: updated });
+    const reader = new FileReader();
+    reader.onloadstart = () => {
+      const updated = [...formData.drivers];
+      updated[driverIndex].uploading = true;
+      setFormData({ ...formData, drivers: updated });
+    };
 
-    try {
-      const result = await verifyLicenseWithIDAnalyzer(file);
-
-      if (!result?.document?.valid) {
-        alert("License verification failed.");
-        updated[driverIndex].uploading = false;
-        setFormData({ ...formData, drivers: updated });
-        return;
-      }
-
-      const filePath = `licenses/${Date.now()}_${file.name}`;
-      const storageRef = ref(storage, filePath);
-      await uploadBytes(storageRef, file);
-      const downloadURL = await getDownloadURL(storageRef);
-
-      updated[driverIndex].licenseImageUrl = downloadURL;
-    } catch (err) {
-      console.error("License verification/upload error:", err);
-      alert("Verification or upload failed.");
-    } finally {
+    reader.onloadend = () => {
+      const updated = [...formData.drivers];
+      updated[driverIndex].licenseImageBase64 = (reader.result as string).split(",")[1];
       updated[driverIndex].uploading = false;
       setFormData({ ...formData, drivers: updated });
-    }
+    };
+
+    reader.readAsDataURL(file);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) return alert("You must be logged in to submit drivers.");
 
-    const hasInvalidPhone = formData.drivers.some(
-      (d) => !isValidPhoneNumber(d.phone)
-    );
+    const hasInvalidPhone = formData.drivers.some((d) => !isValidPhoneNumber(d.phone));
     const hasUploading = formData.drivers.some((d) => d.uploading);
-    const missingImages = formData.drivers.some((d) => !d.licenseImageUrl);
+    const missingImages = formData.drivers.some((d) => !d.licenseImageBase64);
 
     if (hasUploading) {
       alert("Please wait for all image uploads to finish.");
@@ -186,16 +154,18 @@ export default function AddDriverForm() {
 
     setSubmitting(true);
     try {
-      for (const driver of formData.drivers) {
-        await addDoc(collection(db, "pendingDrivers"), {
-          ...driver,
-          service: formData.service,
-          status: "pending",
-          submittedAt: new Date(),
-        });
-      }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const cleanDrivers = formData.drivers.map(({ uploading, ...rest }) => rest);
 
-      setSuccessMessage("Driver(s) submitted for admin approval.");
+      await addDoc(collection(db, "pendingServices"), {
+        service: formData.service,
+        drivers: cleanDrivers,
+        status: "pending",
+        submittedAt: new Date().toISOString(),
+        ownerEmail: user.email,
+      });
+
+      setSuccessMessage("Service and drivers submitted for admin approval.");
       setFormData({
         service: "",
         drivers: [
@@ -203,19 +173,22 @@ export default function AddDriverForm() {
             name: "",
             phone: "",
             licenseNumber: "",
-            licenseImageUrl: "",
+            licenseImageBase64: "",
             priceList: [{ location: "", price: "" }],
             uploading: false,
           },
         ],
       });
       setPhoneErrors([""]);
-    } catch (error) {
-      console.error("Error submitting drivers:", error);
-      alert("Failed to submit drivers.");
-    } finally {
-      setSubmitting(false);
+    } catch (error: unknown) {
+      console.error("Error submitting service and drivers:", error);
+      if (error instanceof Error) {
+        alert(`Failed to submit service and drivers. ${error.message}`);
+      } else {
+        alert("Failed to submit service and drivers.");
+      }
     }
+    
   };
 
   return (
@@ -241,21 +214,17 @@ export default function AddDriverForm() {
               className="w-full p-2 rounded bg-gray-800 mb-2"
               required
             />
-
             <input
               type="text"
               placeholder="Phone Number"
               value={driver.phone}
               onChange={(e) => handleDriverChange(driverIndex, "phone", e.target.value)}
-              className={`w-full p-2 rounded bg-gray-800 mb-1 ${
-                phoneErrors[driverIndex] ? "border border-red-500" : ""
-              }`}
+              className={`w-full p-2 rounded bg-gray-800 mb-1 ${phoneErrors[driverIndex] ? "border border-red-500" : ""}`}
               required
             />
             {phoneErrors[driverIndex] && (
               <p className="text-red-500 text-sm mb-2">Invalid phone number</p>
             )}
-
             <input
               type="text"
               placeholder="License Number"
@@ -264,13 +233,15 @@ export default function AddDriverForm() {
               className="w-full p-2 rounded bg-gray-800 mb-2"
               required
             />
-
             <input
               type="file"
               accept="image/*"
               onChange={(e) => handleLicenseImageUpload(driverIndex, e.target.files?.[0])}
               className="w-full p-2 bg-gray-900 text-white rounded"
             />
+            {driver.uploading && (
+              <p className="text-yellow-400 text-sm mt-1">Processing license image...</p>
+            )}
 
             <div className="mt-3">
               <label className="block mb-1">Prices</label>
@@ -280,18 +251,14 @@ export default function AddDriverForm() {
                     type="text"
                     placeholder="Location"
                     value={entry.location}
-                    onChange={(e) =>
-                      handlePriceChange(driverIndex, priceIndex, "location", e.target.value)
-                    }
+                    onChange={(e) => handlePriceChange(driverIndex, priceIndex, "location", e.target.value)}
                     className="flex-1 p-2 rounded bg-gray-800"
                   />
                   <input
                     type="text"
                     placeholder="Price (MUR)"
                     value={entry.price}
-                    onChange={(e) =>
-                      handlePriceChange(driverIndex, priceIndex, "price", e.target.value)
-                    }
+                    onChange={(e) => handlePriceChange(driverIndex, priceIndex, "price", e.target.value)}
                     className="w-28 p-2 rounded bg-gray-800"
                   />
                   <button
@@ -332,8 +299,12 @@ export default function AddDriverForm() {
 
         <button
           type="submit"
-          disabled={submitting}
-          className="w-full bg-green-600 hover:bg-green-700 py-2 rounded font-semibold"
+          disabled={submitting || formData.drivers.some((d) => d.uploading)}
+          className={`w-full py-2 rounded font-semibold ${
+            submitting || formData.drivers.some((d) => d.uploading)
+              ? "bg-gray-500 cursor-not-allowed"
+              : "bg-green-600 hover:bg-green-700"
+          }`}
         >
           {submitting ? "Submitting..." : "Submit for Admin Approval"}
         </button>
