@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { db } from '@/firebase/firebase.config';
-import { collection, getDocs } from 'firebase/firestore';
-import { Star } from 'lucide-react';
-import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useEffect, useState } from "react";
+import { db } from "@/firebase/firebase.config";
+import { collection, getDocs } from "firebase/firestore";
+import { Star } from "lucide-react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
 
 interface Driver {
   id: string;
@@ -23,7 +23,7 @@ export default function ServicePage() {
 
   useEffect(() => {
     const fetchDrivers = async () => {
-      const snapshot = await getDocs(collection(db, 'drivers'));
+      const snapshot = await getDocs(collection(db, "drivers"));
       const data: Driver[] = snapshot.docs.map((doc) => {
         const d = doc.data();
         return {
@@ -32,7 +32,7 @@ export default function ServicePage() {
           service: d.service,
           phone: d.phone,
           ratings: d.ratings || [],
-          availability: d.availability || 'Free',
+          availability: d.availability || "Free",
           priceList: d.priceList || [],
         };
       });
@@ -49,7 +49,7 @@ export default function ServicePage() {
 
   const formatPhoneForWhatsApp = (phone: string) => {
     // Remove any non-numeric characters
-    return phone.replace(/\D/g, '');
+    return phone.replace(/\D/g, "");
   };
 
   return (
@@ -66,7 +66,11 @@ export default function ServicePage() {
         const waLink = `https://wa.me/${waPhone}`;
 
         return (
-          <Link key={driver.id} href={`/driver/${driver.id}`} className="block mb-4">
+          <Link
+            key={driver.id}
+            href={`/driver/${driver.id}`}
+            className="block mb-4"
+          >
             <div className="bg-white text-black p-4 rounded shadow hover:shadow-lg transition duration-300">
               <div className="flex justify-between items-center">
                 <h3 className="font-semibold text-lg">{driver.name}</h3>
@@ -75,24 +79,29 @@ export default function ServicePage() {
                   <span>{avgRating.toFixed(1)}</span>
                 </div>
               </div>
-              <p className="italic text-sm text-gray-600">Service: {driver.service}</p>
+              <p className="italic text-sm text-gray-600">
+                Service: {driver.service}
+              </p>
               <p className="text-sm">Phone: {driver.phone}</p>
 
               <div className="flex items-center gap-3 mt-1">
                 <span
                   className={`text-sm ${
-                    driver.availability === 'Free' ? 'text-green-500' : 'text-red-500'
+                    driver.availability === "Free"
+                      ? "text-green-500"
+                      : "text-red-500"
                   }`}
                 >
                   {driver.availability}
                 </span>
 
                 {/* WhatsApp Button */}
+                <p className="text-sm">Phone: {driver.phone}</p>
                 <a
                   href={waLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1 rounded-full transition"
+                  className="inline-block mt-1 bg-green-500 hover:bg-green-600 text-white text-sm px-3 py-1 rounded-full transition"
                 >
                   Chat on WhatsApp
                 </a>
