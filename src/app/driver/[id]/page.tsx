@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
@@ -135,7 +135,15 @@ export default function DriverPage() {
     <main className="p-6 max-w-3xl mx-auto text-white">
       <h1 className="text-2xl font-bold mb-2">{driver.name}</h1>
       <p className="mb-1">Service: {driver.service}</p>
-      <p className="mb-4">Phone: {driver.phone}</p>
+      <p className="mb-1">Phone: {driver.phone}</p>
+      <a
+        href={`https://wa.me/${driver.phone.replace(/\D/g, '')}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-block mb-4 bg-green-500 hover:bg-green-600 text-white text-sm px-3 py-1 rounded-full transition"
+      >
+        Chat on WhatsApp
+      </a>
 
       <div className="flex items-center gap-2 mt-2 mb-4">
         {[1, 2, 3, 4, 5].map((star) => (
