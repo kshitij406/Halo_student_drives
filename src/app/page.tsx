@@ -79,7 +79,7 @@ export default function HomePage() {
             {hasDashboard && (
               <Link
                 href="/driver-dashboard"
-                className="px-4 py-3 bg-yellow-400 text-black font-semibold rounded hover:bg-yellow-300"
+                className="text-sm md:text-base px-3 py-2 md:px-4 md:py-3 bg-yellow-400 text-black font-semibold rounded hover:bg-yellow-300"
               >
                 Driver Dashboard
               </Link>
