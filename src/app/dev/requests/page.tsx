@@ -121,7 +121,7 @@ export default function DevRequestsPage() {
           Pending Service Approvals
         </h1>
 
-        <div  ref={scrollContainerRef} className="overflow-x-auto whitespace-nowrap snap-x snap-mandatory scroll-smooth px-4 py-10 scrollbar-custom">
+        <div  ref={scrollContainerRef} className="overflow-x-auto whitespace-nowrap snap-x snap-mandatory scroll-smooth px-3 py-10 scrollbar-custom">
           {services.length === 0 ? (
             <p className="text-gray-400">No pending requests found.</p>
           ) : (
