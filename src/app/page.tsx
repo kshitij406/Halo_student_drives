@@ -13,6 +13,7 @@ interface Driver {
   name: string;
   service: string;
   phone: string;
+  availability?: string;
   ratings?: number[];
 }
 
@@ -21,9 +22,7 @@ export default function HomePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOption, setSortOption] = useState("recent");
   const [loading, setLoading] = useState(true);
-
   const { user } = useUser();
-
   const [hasDashboard, setHasDashboard] = useState(false);
 
   useEffect(() => {
@@ -48,6 +47,7 @@ export default function HomePage() {
           name: d.name,
           service: d.service,
           phone: d.phone,
+          availability: d.availability || "Free",
           ratings: d.ratings || [],
         };
       });
@@ -71,20 +71,20 @@ export default function HomePage() {
             <h1 className="text-xl text-gray-400">
               Hi, {user?.username || "Guest"}
             </h1>
-              <div className="flex justify-between items-center w-full">
-            <h2 className="text-4xl font-extrabold tracking-tight">
-              Your Ride, Reimagined.
-            </h2>
+            <div className="flex justify-between items-center w-full">
+              <h2 className="text-4xl font-extrabold tracking-tight">
+                Your Ride, Reimagined.
+              </h2>
 
-            {hasDashboard && (
-              <Link
-                href="/driver-dashboard"
-                className="text-sm md:text-base px-3 py-2 md:px-4 md:py-3 bg-yellow-400 text-black font-semibold rounded-4xl hover:bg-yellow-300"
-              >
-                Dashboard
-              </Link>
-            )}
-          </div>
+              {hasDashboard && (
+                <Link
+                  href="/driver-dashboard"
+                  className="text-sm md:text-base px-3 py-2 md:px-4 md:py-3 bg-yellow-400 text-black font-semibold rounded-4xl hover:bg-yellow-300"
+                >
+                  Dashboard
+                </Link>
+              )}
+            </div>
 
             <p className="text-gray-400 text-lg">
               Browse verified student drivers offering rides nearby.
@@ -183,6 +183,15 @@ export default function HomePage() {
                               <span>{avgRating.toFixed(1)}</span>
                             </div>
                           </div>
+                          <p
+                            className={`text-sm font-medium ${
+                              driver.availability === "Free"
+                                ? "text-green-400"
+                                : "text-red-400"
+                            }`}
+                          >
+                            {driver.availability}
+                          </p>
                           <p className="text-sm text-gray-400 italic mb-1">
                             Phone: {driver.phone}
                           </p>
