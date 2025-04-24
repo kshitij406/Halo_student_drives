@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState,useRef } from "react";
 import { db } from "@/firebase/firebase.config";
 import {
   collection,
@@ -11,6 +11,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import Image from "next/image";
+import LoadingScreen from "../../components/LoadingScreen";
 
 interface Driver {
   name: string;
@@ -31,6 +32,8 @@ interface PendingService {
 export default function DevRequestsPage() {
   const [services, setServices] = useState<PendingService[]>([]);
   const [loading, setLoading] = useState(true);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
 
   const fetchRequests = async () => {
     const snapshot = await getDocs(collection(db, "pendingServices"));
@@ -49,8 +52,7 @@ export default function DevRequestsPage() {
   const handleApproveDriver = async (serviceId: string, driver: Driver) => {
     const service = services.find((s) => s.id === serviceId);
     if (!service) return;
-  
-    // 1. Add to approved drivers collection
+
     const ref = await addDoc(collection(db, "drivers"), {
       ...driver,
       service: service.service,
@@ -60,13 +62,14 @@ export default function DevRequestsPage() {
       status: "approved",
     });
     await updateDoc(ref, { id: ref.id });
-  
-    // 2. Remove from pendingServices
-    const updatedDrivers = service.drivers.filter((d) => d.licenseNumber !== driver.licenseNumber);
+
+    const updatedDrivers = service.drivers.filter(
+      (d) => d.licenseNumber !== driver.licenseNumber
+    );
     const serviceRef = doc(db, "pendingServices", serviceId);
-  
+
     if (updatedDrivers.length === 0) {
-      await deleteDoc(serviceRef); // no more drivers, delete service
+      await deleteDoc(serviceRef);
       setServices((prev) => prev.filter((s) => s.id !== serviceId));
     } else {
       await updateDoc(serviceRef, { drivers: updatedDrivers });
@@ -76,10 +79,10 @@ export default function DevRequestsPage() {
         )
       );
     }
-  
+
     alert(`Approved ${driver.name}`);
   };
-  
+
   const handleRejectDriver = async (serviceId: string, index: number) => {
     const serviceRef = doc(db, "pendingServices", serviceId);
     const service = services.find((s) => s.id === serviceId);
@@ -105,97 +108,105 @@ export default function DevRequestsPage() {
 
   const handleRejectService = async (serviceId: string) => {
     await deleteDoc(doc(db, "pendingServices", serviceId));
-    setServices(services.filter((s) => s.id !== serviceId));
+    setServices((prev) => prev.filter((s) => s.id !== serviceId));
     alert("Service rejected.");
   };
 
   return (
-    <div className="p-6 text-white max-w-5xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">🧾 Pending Service Approvals</h1>
+    <>
+      <LoadingScreen show={loading} />
 
-      {loading ? (
-        <p className="text-gray-400">Loading...</p>
-      ) : services.length === 0 ? (
-        <p className="text-gray-400">No pending requests found.</p>
-      ) : (
-        services.map((service) => (
-          <div
-            key={service.id}
-            className="border border-gray-600 p-4 rounded mb-6 bg-black"
-          >
-            <h2 className="text-xl font-semibold text-yellow-400">
-              {service.service}
-            </h2>
-            <p className="text-sm text-gray-400">
-              Submitted by: {service.ownerEmail}
-            </p>
-            <p className="text-sm text-gray-400 mb-4">
-              Date: {new Date(service.submittedAt).toLocaleString()}
-            </p>
+      <div className="p-6 text-white max-w-full">
+        <h1 className="text-2xl font-bold mb-6 text-center">
+          Pending Service Approvals
+        </h1>
 
-            {service.drivers.map((driver, i) => (
-              <div key={i} className="mb-4 p-3 bg-gray-900 rounded">
-                <p>
-                  <strong>Name:</strong> {driver.name}
+        <div  ref={scrollContainerRef} className="overflow-x-auto whitespace-nowrap snap-x snap-mandatory scroll-smooth px-4 py-10 scrollbar-custom">
+          {services.length === 0 ? (
+            <p className="text-gray-400">No pending requests found.</p>
+          ) : (
+            services.map((service) => (
+              <div
+                key={service.id}
+                className="inline-block snap-center align-top w-[350px] border border-gray-600 p-6 mx-2 rounded bg-black text-lg transition-transform duration-200 hover:scale-105"
+              >
+                <h2 className="text-xl font-semibold text-yellow-400">
+                  Service Name: {service.service}
+                </h2>
+                <p className="text-sm text-gray-400">
+                  Submitted by: {service.ownerEmail}
                 </p>
-                <p>
-                  <strong>Phone:</strong> {driver.phone}
-                </p>
-                <p>
-                  <strong>License No:</strong> {driver.licenseNumber}
+                <p className="text-sm text-gray-400 mb-4">
+                  Date: {new Date(service.submittedAt).toLocaleString()}
                 </p>
 
-                {driver.licenseImageBase64 && (
-                  <div className="mt-2">
+                {service.drivers.map((driver, i) => (
+                  <div key={i} className="mb-4 bg-black rounded">
                     <p>
-                      <strong>License Image:</strong>
+                      <strong className="text-yellow-500">Name:</strong>{" "}
+                      {driver.name}
                     </p>
-                    <Image
-                      src={`data:image/png;base64,${driver.licenseImageBase64}`}
-                      alt="License Preview"
-                      width={300}
-                      height={200}
-                      className="mt-2 max-w-xs border border-gray-700 rounded"
-                    />
+                    <p>
+                      <strong className="text-yellow-500">Phone:</strong>{" "}
+                      {driver.phone}
+                    </p>
+                    <p>
+                      <strong className="text-yellow-500">License No:</strong>{" "}
+                      {driver.licenseNumber}
+                    </p>
+
+                    {driver.licenseImageBase64 && (
+                      <div className="mt-2 w-full h-[200px] relative border border-gray-700 rounded overflow-hidden">
+                        <Image
+                          src={`data:image/png;base64,${driver.licenseImageBase64}`}
+                          alt="License Preview"
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                    )}
+
+                    <p className="mt-2">
+                      <strong className="text-yellow-500">Prices</strong>
+                    </p>
+                    <ul className="list-none text-lg">
+                      {driver.priceList.map((p, idx) => (
+                        <li key={idx}>
+                          {p.location}-Rs.{p.price}
+                        </li>
+                      ))}
+                    </ul>
+
+                    <div className="mt-2 flex flex-col gap-2">
+                      <button
+                        onClick={() => handleApproveDriver(service.id, driver)}
+                        className="p-2 outline-1 outline-yellow-500 rounded transition font-semibold
+                      text-white text-lg hover:text-black hover:bg-green-400 hover:outline-green-400"
+                      >
+                        Approve Driver
+                      </button>
+                      <button
+                        onClick={() => handleRejectDriver(service.id, i)}
+                        className="p-2 outline-1 outline-yellow-500 rounded transition font-semibold text-white text-lg
+                      hover:text-black hover:bg-red-500 hover:outline-red-500"
+                      >
+                        Reject Driver
+                      </button>
+                    </div>
                   </div>
-                )}
+                ))}
 
-                <p className="mt-2">
-                  <strong>Prices:</strong>
-                </p>
-                <ul className="list-disc list-inside text-sm">
-                  {driver.priceList.map((p, idx) => (
-                    <li key={idx}>
-                      {p.location}: Rs {p.price}
-                    </li>
-                  ))}
-                </ul>
-                <div className="mt-2 flex gap-4">
-                  <button
-                    onClick={() => handleApproveDriver(service.id, driver)}
-                    className="text-green-400 text-sm underline hover:text-green-300"
-                  >
-                    ✅ Approve Driver
-                  </button>
-                  <button
-                    onClick={() => handleRejectDriver(service.id, i)}
-                    className="text-red-400 text-sm underline hover:text-red-500"
-                  >
-                    ❌ Reject Driver
-                  </button>
-                </div>
+                <button
+                  onClick={() => handleRejectService(service.id)}
+                  className="w-full mt-3 py-2 bg-yellow-500 text-black font-bold rounded hover:bg-red-700 hover:text-white"
+                >
+                  Reject Entire Service
+                </button>
               </div>
-            ))}
-
-            <button
-              onClick={() => handleRejectService(service.id)}
-              className="text-red-400 text-sm mt-3 underline hover:text-red-500"
-            >
-              ❌ Reject Entire Service
-            </button>
-          </div>
-        ))
-      )}
-    </div>
+            ))
+          )}
+        </div>
+      </div>
+    </>
   );
 }

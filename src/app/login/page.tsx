@@ -18,7 +18,7 @@ export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [pageLoading, setPageLoading] = useState(true); // for page load
+  const [pageLoading, setPageLoading] = useState(true); 
 
   const router = useRouter();
   const { setUser } = useUser();
@@ -35,10 +35,8 @@ export default function LoginPage() {
     }
   }, [router]);
 
-  // ✅ Don't block page — just use fading loader
   return (
     <>
-      {/* Loading screen handles both: page and actions */}
       <LoadingScreen show={pageLoading || loading} />
 
       {!pageLoading && (
