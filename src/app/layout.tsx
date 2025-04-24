@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import ClientLayout from './ClientLayout';
 
 export const metadata: Metadata = {
-  title: 'Peer Rides',
+  title: 'Halo',
   description: 'A student driver contact app',
 };
 
