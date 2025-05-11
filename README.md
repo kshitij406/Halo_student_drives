@@ -6,13 +6,13 @@ Live site: [halo-student-drives.vercel.app](https://halo-student-drives.vercel.a
 
 ## Features
 
-- 🔐 **Driver Verification System** — Only verified students can register as drivers.
-- 📱 **Mobile-Responsive UI** — Optimized for all devices.
-- 📊 **Driver Dashboard** — Manage ride listings and view analytics.
-- 🔍 **Search & Filter** — Easily find drivers based on routes or availability.
-- ⭐ **Ratings** — Rate drivers for transparency and quality.
-- ☁️ **Hosted on Vercel** — Fast, reliable deployments with CI/CD.
-- 🔥 **Firebase Backend** — Real-time database, authentication, and storage.
+-  **Driver Verification System** — Only verified students can register as drivers.
+-  **Mobile-Responsive UI** — Optimized for all devices.
+-  **Driver Dashboard** — Manage ride listings and view analytics.
+-  **Search & Filter** — Easily find drivers based on routes or availability.
+-  **Ratings** — Rate drivers for transparency and quality.
+-  **Hosted on Vercel** — Fast, reliable deployments with CI/CD.
+-  **Firebase Backend** — Real-time database, authentication, and storage.
 
 ## Getting Started
 
