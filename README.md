@@ -29,16 +29,16 @@ You can start editing by modifying the main page at src/app/page.tsx. Changes ar
 
 # Project Structure 
 
-/public         # Static assets
-/src            # Source code
-/firebase.json  # Firebase config
-/storage.rules  # Firebase storage security rules
+- /public         # Static assets
+- /src            # Source code
+- /firebase.json  # Firebase config
+- /storage.rules  # Firebase storage security rules
 
 # Tech Stack
 
-Frontend: Next.js, TypeScript, TailwindCSS, Vercel Fonts
-Backend: Firebase Firestore, Firebase Auth, Firebase Storage
-Deployment: Vercel
+- **Frontend**: Next.js, TypeScript, TailwindCSS, Vercel Fonts
+- **Backend**: Firebase Firestore, Firebase Auth, Firebase Storage
+- **Deployment**: Vercel
 
 # Contributors
 
