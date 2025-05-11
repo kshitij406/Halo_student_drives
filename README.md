@@ -1,36 +1,49 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Halo Student Drives
+
+**Halo Student Drives** is a student-driven platform built using [Next.js](https://nextjs.org) and Firebase. It connects student drivers to riders within campus communities to offer affordable and trusted ride-sharing services.
+
+Live site: [halo-student-drives.vercel.app](https://halo-student-drives.vercel.app)
+
+## Features
+
+- 🔐 **Driver Verification System** — Only verified students can register as drivers.
+- 📱 **Mobile-Responsive UI** — Optimized for all devices.
+- 📊 **Driver Dashboard** — Manage ride listings and view analytics.
+- 🔍 **Search & Filter** — Easily find drivers based on routes or availability.
+- ⭐ **Ratings** — Rate drivers for transparency and quality.
+- ☁️ **Hosted on Vercel** — Fast, reliable deployments with CI/CD.
+- 🔥 **Firebase Backend** — Real-time database, authentication, and storage.
 
 ## Getting Started
 
-First, run the development server:
+To run the development server locally:
 
 ```bash
+npm install
 npm run dev
 # or
 yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
+Then visit http://localhost:3000 in your browser.
+You can start editing by modifying the main page at src/app/page.tsx. Changes are hot-reloaded automatically.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+# Project Structure 
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+/public         # Static assets
+/src            # Source code
+/firebase.json  # Firebase config
+/storage.rules  # Firebase storage security rules
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# Tech Stack
 
-## Learn More
+Frontend: Next.js, TypeScript, TailwindCSS, Vercel Fonts
+Backend: Firebase Firestore, Firebase Auth, Firebase Storage
+Deployment: Vercel
 
-To learn more about Next.js, take a look at the following resources:
+# Contributors
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# Licence
+---
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Let me know if you'd like a version with badges (e.g. Vercel deploy status, GitHub issues) or a downloadable `.md` or `.pdf` version.
