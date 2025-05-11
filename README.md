@@ -41,9 +41,14 @@ You can start editing by modifying the main page at src/app/page.tsx. Changes ar
 - **Deployment**: Vercel
 
 # Contributors
+- [Kshitij Jha](https://github.com/kshitij406)
+- [Harshil Patel](https://github.com/harshilpatel05)
 
 
 # Licence
+
+This project is for educational and internal use at university and does not currently include a public license.
+
 ---
 
 Let me know if you'd like a version with badges (e.g. Vercel deploy status, GitHub issues) or a downloadable `.md` or `.pdf` version.
