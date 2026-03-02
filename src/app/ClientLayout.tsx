@@ -13,14 +13,14 @@ export default function ClientLayout({
 }) {
   return (
     <UserProvider>
-      <body className="bg-black text-white flex flex-col">
+      <div className="min-h-screen bg-black text-white flex flex-col">
         <Header />
         <Toaster position="top-center" richColors />
         <main className="min-h-screen flex-1 overflow-hidden">{children}</main>
         <footer className="bg-yellow-500 py-2 text-black font-bold text-center">
           Made by Harshil Patel & Kshitij Jha
         </footer>
-      </body>
+      </div>
     </UserProvider>
   );
 }
