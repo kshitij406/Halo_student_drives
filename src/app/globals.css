@@ -1,48 +1,130 @@
 @import "tailwindcss";
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-.container {
-  padding: 0px;
-  font-size: 18px;
+  --bg: #080808;
+  --surface: #111111;
+  --surface-2: #1a1a1a;
+  --border: #272727;
+  --border-hover: #3d3d3d;
+  --yellow: #facc15;
+  --yellow-dim: #ca9a04;
+  --text: #f0f0f0;
+  --muted: #888888;
+  --muted-2: #555555;
+  --green: #22c55e;
+  --red: #ef4444;
 }
 
-
-
-@media (max-width: 480px) {
-  .container {
-    padding: 0px;
-    font-size: 12px;
-  }
+*, *::before, *::after {
+  box-sizing: border-box;
 }
-  
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-}
-/* Tailwind-compatible custom scrollbar */
-.scrollbar-custom::-webkit-scrollbar {
-  height: 8px;
-}
-.scrollbar-custom::-webkit-scrollbar-track {
-  background: transparent;
-}
-.scrollbar-custom::-webkit-scrollbar-thumb {
-  background-color: #0a0a0a; /* Tailwind yellow-400 */
-  border-radius: 9999px;
-  border: 2px solid #0a0a0a; /* Tailwind gray-800 (background) */
+  background-color: var(--bg);
+  color: var(--text);
 }
 
-.scrollbar-custom {
-  scrollbar-color: #0a0a0a transparent; /* Firefox */
-  scrollbar-width: thin;
+/* Input base */
+.input {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border-radius: 0.625rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.9375rem;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.input::placeholder {
+  color: var(--muted-2);
+}
+
+.input:focus {
+  border-color: var(--yellow);
+  box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.12);
+}
+
+.input.error {
+  border-color: var(--red);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+}
+
+/* Card */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+}
+
+/* Button variants */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.625rem;
+  background: var(--yellow);
+  color: #000;
+  font-weight: 700;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  border: none;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.btn-primary:hover {
+  background: #f0c000;
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+}
+
+.btn-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  border-radius: 0.625rem;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.btn-ghost:hover {
+  border-color: var(--border-hover);
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-hover);
+  border-radius: 999px;
 }

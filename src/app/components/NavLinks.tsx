@@ -8,40 +8,67 @@ export default function NavLinks() {
   const { user, setUser } = useUser();
   const pathname = usePathname();
 
-  const linkClass =
-    'px-3 py-2 transition-all duration-200 rounded-xl text-sm sm:text-base font-bold';
+  const isActive = (href: string) => pathname === href;
 
-  const getLinkStyle = (href: string) => {
-    return pathname === href
-      ? `${linkClass} bg-black text-white`
-      : `${linkClass} text-black hover:bg-black hover:text-white`;
-  };
+  const linkStyle = (href: string) =>
+    `px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+      isActive(href)
+        ? 'text-black'
+        : 'hover:text-white'
+    }`;
 
   return (
-    <div className="flex items-center gap-2 sm:gap-4">
-      <Link href="/" className={getLinkStyle('/')}>
+    <nav className="flex items-center gap-1">
+      <Link
+        href="/"
+        className={linkStyle('/')}
+        style={isActive('/') ? { background: 'var(--yellow)', color: '#000' } : { color: 'var(--muted)' }}
+      >
         Home
       </Link>
 
+      <Link
+        href="/add-driver"
+        className={linkStyle('/add-driver')}
+        style={isActive('/add-driver') ? { background: 'var(--yellow)', color: '#000' } : { color: 'var(--muted)' }}
+      >
+        Drive
+      </Link>
+
       {!user ? (
-        <Link href="/login" className={getLinkStyle('/login')}>
+        <Link
+          href="/login"
+          className="ml-2 btn-primary text-sm px-4 py-1.5"
+        >
           Login
         </Link>
       ) : (
-        <button
-          onClick={() => {
-            setUser(null);
-            localStorage.removeItem('user');
-          }}
-          className="px-3 py-2 rounded-xl text-sm sm:text-base font-bold text-black hover:bg-red-600 hover:text-white transition"
-        >
-          Logout
-        </button>
+        <div className="flex items-center gap-2 ml-2">
+          <Link
+            href="/profile"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors"
+            style={{ color: 'var(--muted)', background: 'var(--surface-2)', border: '1px solid var(--border)' }}
+          >
+            <span
+              className="inline-flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold text-black"
+              style={{ background: 'var(--yellow)' }}
+            >
+              {user.username?.[0]?.toUpperCase() ?? '?'}
+            </span>
+            {user.username?.split(' ')[0] ?? 'Me'}
+          </Link>
+          <button
+            onClick={() => {
+              setUser(null);
+              localStorage.removeItem('user');
+            }}
+            className="px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors"
+            style={{ color: 'var(--muted)', background: 'var(--surface-2)', border: '1px solid var(--border)' }}
+          >
+            Logout
+          </button>
+        </div>
       )}
-
-      <Link href="/add-driver" className={getLinkStyle('/add-driver')}>
-        Drive
-      </Link>
-    </div>
+    </nav>
   );
 }

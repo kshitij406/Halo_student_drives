@@ -18,7 +18,8 @@ export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [pageLoading, setPageLoading] = useState(true); 
+  const [pageLoading, setPageLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const router = useRouter();
   const { setUser } = useUser();
@@ -28,209 +29,193 @@ export default function LoginPage() {
     if (existingUser) {
       router.push('/');
     } else {
-      const timeout = setTimeout(() => {
-        setPageLoading(false); // ends the page loader
-      }, 800);
+      const timeout = setTimeout(() => setPageLoading(false), 400);
       return () => clearTimeout(timeout);
     }
   }, [router]);
 
-  return (
-    <>
-      <LoadingScreen show={pageLoading || loading} />
-
-      {!pageLoading && (
-        <main className="p-6 max-w-xl mx-auto text-center">
-          <Image
-            className="mx-auto mb-4 mt-30"
-            src="/transparent-white-logo.png"
-            alt="Logo"
-            width={150}
-            height={150}
-          />
-
-          <div className="transition-opacity duration-500 ease-in-out" key={tab}>
-            <form onSubmit={tab === 'login' ? handleLogin : handleSignup} className="space-y-4">
-              <input
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-80 border border-gray-300 p-2 rounded text-white bg-black/10"
-                required
-              />
-
-              {tab === 'signup' && (
-                <input
-                  type="text"
-                  placeholder="Username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="w-80 border border-gray-300 p-2 rounded text-white bg-black/10"
-                  required
-                />
-              )}
-
-              <input
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-80 border border-gray-300 p-2 rounded text-white bg-black/10"
-                required
-              />
-
-              <button
-                type="submit"
-                className="w-80 bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-2 rounded"
-              >
-                {tab === 'login' ? 'Login' : 'Create Account'}
-              </button>
-            </form>
-          </div>
-
-          <div className="pt-6">
-            <button
-              onClick={handleGoogleSignIn}
-              className="bg-white border border-gray-400 px-4 py-2 rounded hover:bg-gray-100 transition flex items-center mx-auto"
-            >
-              <Image
-                src="/google-icon.svg"
-                alt="Google"
-                width={20}
-                height={20}
-                className="mr-2"
-              />
-              <span className="text-black">Sign in with Google</span>
-            </button>
-          </div>
-
-          {tab === 'login' && (
-            <div className="pt-6">
-              <a
-                href="#"
-                onClick={handleSignupClick}
-                className="text-yellow-500 font-semibold hover:bg-yellow-500 hover:text-black rounded-4xl px-4 py-2 transition duration-200"
-              >
-                Don’t have an account? Sign up here
-              </a>
-            </div>
-          )}
-
-          {tab === 'signup' && (
-            <div className="pt-6">
-              <a
-                href="#"
-                onClick={handleLoginClick}
-                className="text-yellow-500 font-semibold hover:bg-yellow-500 hover:text-black rounded-4xl px-4 py-2 transition duration-200"
-              >
-                Already have an account? Log in here
-              </a>
-            </div>
-          )}
-        </main>
-      )}
-    </>
-  );
-
   function determineRole(email: string, password?: string): 'user' | 'dev' {
-    return (
-      email === process.env.NEXT_PUBLIC_DEV_USERNAME &&
+    return email === process.env.NEXT_PUBLIC_DEV_USERNAME &&
       password === process.env.NEXT_PUBLIC_DEV_PASSWORD
-    )
       ? 'dev'
       : 'user';
   }
 
-  function delayedRedirect(callback: () => void) {
+  function storeUser(info: { username: string; email: string; role: 'user' | 'dev' }) {
+    setUser(info);
+    localStorage.setItem('user', JSON.stringify(info));
     setTimeout(() => {
-      callback();
       setLoading(false);
       router.push('/');
-    }, 1000);
+    }, 600);
   }
 
   async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setError('');
     setLoading(true);
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-      const role = determineRole(email, password);
-      const userInfo = {
-        username: user.displayName || user.email || '',
-        email: user.email || '',
-        role,
-      };
-      setUser(userInfo);
-      localStorage.setItem('user', JSON.stringify(userInfo));
-      delayedRedirect(() => {});
-    } catch (error: unknown) {
-      if (error instanceof Error) alert('Login failed: ' + error.message);
-      else alert('Login failed.');
+      const cred = await signInWithEmailAndPassword(auth, email, password);
+      storeUser({
+        username: cred.user.displayName || cred.user.email || '',
+        email: cred.user.email || '',
+        role: determineRole(email, password),
+      });
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Login failed.');
       setLoading(false);
     }
   }
 
   async function handleSignup(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setError('');
     setLoading(true);
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-      await updateProfile(user, { displayName: username });
-      const role = determineRole(email, password);
-      const userInfo = {
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      await updateProfile(cred.user, { displayName: username });
+      storeUser({
         username,
-        email: user.email || '',
-        role,
-      };
-      setUser(userInfo);
-      localStorage.setItem('user', JSON.stringify(userInfo));
-      delayedRedirect(() => {});
-    } catch (error: unknown) {
-      if (error instanceof Error) alert('Signup failed: ' + error.message);
-      else alert('Signup failed.');
+        email: cred.user.email || '',
+        role: determineRole(email, password),
+      });
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Signup failed.');
       setLoading(false);
     }
   }
 
   async function handleGoogleSignIn() {
+    setError('');
     setLoading(true);
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
-      const role = determineRole(user.email || '');
-      const userInfo = {
-        username: user.displayName || user.email || '',
-        email: user.email || '',
-        role,
-      };
-      setUser(userInfo);
-      localStorage.setItem('user', JSON.stringify(userInfo));
-      delayedRedirect(() => {});
-    } catch (error: unknown) {
-      if (error instanceof Error) alert('Google sign-in failed: ' + error.message);
-      else alert('Google sign-in failed.');
+      const u = result.user;
+      storeUser({
+        username: u.displayName || u.email || '',
+        email: u.email || '',
+        role: determineRole(u.email || ''),
+      });
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Google sign-in failed.');
       setLoading(false);
     }
   }
 
-  function handleSignupClick(e: React.MouseEvent<HTMLAnchorElement>) {
-    e.preventDefault();
-    setLoading(true);
-    setTimeout(() => {
-      setTab('signup');
-      setLoading(false);
-    }, 700);
-  }
+  return (
+    <>
+      <LoadingScreen show={pageLoading || loading} />
 
-  function handleLoginClick(e: React.MouseEvent<HTMLAnchorElement>) {
-    e.preventDefault();
-    setLoading(true);
-    setTimeout(() => {
-      setTab('login');
-      setLoading(false);
-    }, 700);
-  }
+      {!pageLoading && (
+        <main className="flex min-h-[calc(100vh-120px)] items-center justify-center px-4 py-12">
+          <div className="card w-full max-w-sm p-8">
+            {/* Logo */}
+            <div className="mb-6 flex flex-col items-center gap-3">
+              <div
+                className="flex h-14 w-14 items-center justify-center rounded-2xl"
+                style={{ background: 'var(--yellow)' }}
+              >
+                <Image
+                  src="/transparent_logo.png"
+                  alt="Halo"
+                  width={40}
+                  height={40}
+                  className="object-contain"
+                />
+              </div>
+              <div className="text-center">
+                <h1 className="text-xl font-bold">Welcome to Halo</h1>
+                <p className="text-sm mt-0.5" style={{ color: 'var(--muted)' }}>
+                  {tab === 'login' ? 'Sign in to your account' : 'Create your account'}
+                </p>
+              </div>
+            </div>
+
+            {/* Tabs */}
+            <div
+              className="mb-6 flex rounded-xl p-1"
+              style={{ background: 'var(--surface-2)' }}
+            >
+              {(['login', 'signup'] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => { setTab(t); setError(''); }}
+                  className="flex-1 rounded-lg py-2 text-sm font-semibold transition-colors capitalize"
+                  style={
+                    tab === t
+                      ? { background: 'var(--yellow)', color: '#000' }
+                      : { color: 'var(--muted)' }
+                  }
+                >
+                  {t === 'login' ? 'Login' : 'Sign up'}
+                </button>
+              ))}
+            </div>
+
+            {/* Error */}
+            {error && (
+              <div
+                className="mb-4 rounded-lg px-4 py-3 text-sm"
+                style={{ background: 'rgba(239,68,68,0.1)', color: 'var(--red)', border: '1px solid rgba(239,68,68,0.25)' }}
+              >
+                {error}
+              </div>
+            )}
+
+            {/* Form */}
+            <form onSubmit={tab === 'login' ? handleLogin : handleSignup} className="space-y-3">
+              <input
+                type="email"
+                placeholder="Email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="input"
+                required
+                autoComplete="email"
+              />
+              {tab === 'signup' && (
+                <input
+                  type="text"
+                  placeholder="Username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="input"
+                  required
+                  autoComplete="username"
+                />
+              )}
+              <input
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="input"
+                required
+                autoComplete={tab === 'login' ? 'current-password' : 'new-password'}
+              />
+              <button type="submit" className="btn-primary w-full py-2.5">
+                {tab === 'login' ? 'Login' : 'Create Account'}
+              </button>
+            </form>
+
+            {/* Divider */}
+            <div className="my-5 flex items-center gap-3">
+              <div className="flex-1 border-t" style={{ borderColor: 'var(--border)' }} />
+              <span className="text-xs" style={{ color: 'var(--muted)' }}>or</span>
+              <div className="flex-1 border-t" style={{ borderColor: 'var(--border)' }} />
+            </div>
+
+            {/* Google */}
+            <button
+              onClick={handleGoogleSignIn}
+              className="btn-ghost w-full gap-2.5"
+            >
+              <Image src="/google-icon.svg" alt="Google" width={18} height={18} />
+              Continue with Google
+            </button>
+          </div>
+        </main>
+      )}
+    </>
+  );
 }

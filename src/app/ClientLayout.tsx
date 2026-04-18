@@ -13,12 +13,46 @@ export default function ClientLayout({
 }) {
   return (
     <UserProvider>
-      <div className="min-h-screen bg-black text-white flex flex-col">
+      <div className="min-h-screen flex flex-col" style={{ background: 'var(--bg)', color: 'var(--text)' }}>
         <Header />
-        <Toaster position="top-center" richColors />
-        <main className="min-h-screen flex-1 overflow-hidden">{children}</main>
-        <footer className="bg-yellow-500 py-2 text-black font-bold text-center">
-          Made by Harshil Patel & Kshitij Jha
+        <Toaster
+          position="top-center"
+          richColors
+          toastOptions={{
+            style: {
+              background: 'var(--surface-2)',
+              border: '1px solid var(--border)',
+              color: 'var(--text)',
+            },
+          }}
+        />
+        <main className="flex-1">{children}</main>
+        <footer
+          className="py-4 text-center text-sm"
+          style={{ borderTop: '1px solid var(--border)', background: 'var(--surface)' }}
+        >
+          <span style={{ color: 'var(--muted)' }}>
+            Halo &mdash; Made by{' '}
+            <a
+              href="https://github.com/harshilpatel05"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: 'var(--yellow)' }}
+              className="hover:underline"
+            >
+              Harshil
+            </a>{' '}
+            &amp;{' '}
+            <a
+              href="https://github.com/kshitij406"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: 'var(--yellow)' }}
+              className="hover:underline"
+            >
+              Kshitij
+            </a>
+          </span>
         </footer>
       </div>
     </UserProvider>

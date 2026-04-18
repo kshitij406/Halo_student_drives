@@ -13,7 +13,7 @@ import {
   updateDoc,
   Timestamp,
 } from "firebase/firestore";
-import { Star } from "lucide-react";
+import { Star, Phone, MessageCircle } from "lucide-react";
 import { useUser } from "../../../context/Usercontext";
 
 interface Review {
@@ -38,6 +38,16 @@ interface Driver {
   priceList: PriceEntry[];
 }
 
+function StarRow({ value, size = 16 }: { value: number; size?: number }) {
+  return (
+    <div className="flex items-center gap-0.5">
+      {[1, 2, 3, 4, 5].map((s) => (
+        <Star key={s} size={size} fill={value >= s ? '#facc15' : 'none'} stroke="#facc15" />
+      ))}
+    </div>
+  );
+}
+
 export default function DriverPage() {
   const { id } = useParams();
   const { user } = useUser();
@@ -46,13 +56,12 @@ export default function DriverPage() {
   const [rating, setRating] = useState(0);
   const [review, setReview] = useState("");
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!id) return;
 
-    const fetchDriver = async () => {
-      const ref = doc(db, "drivers", String(id));
-      const snapshot = await getDoc(ref);
+    getDoc(doc(db, "drivers", String(id))).then((snapshot) => {
       if (snapshot.exists()) {
         const d = snapshot.data();
         setDriver({
@@ -64,10 +73,9 @@ export default function DriverPage() {
           priceList: d.priceList || [],
         });
       }
-    };
+    });
 
-    const fetchReviews = async () => {
-      const snapshot = await getDocs(collection(db, `drivers/${id}/reviews`));
+    getDocs(collection(db, `drivers/${id}/reviews`)).then((snapshot) => {
       const list: Review[] = snapshot.docs.map((doc) => {
         const data = doc.data();
         return {
@@ -79,30 +87,33 @@ export default function DriverPage() {
         };
       });
       setReviews(list.sort((a, b) => b.timestamp?.seconds - a.timestamp?.seconds));
-    };
-
-    fetchDriver();
-    fetchReviews();
+    });
   }, [id]);
 
-  const avgRating =
+  const avg =
     driver?.ratings && driver.ratings.length > 0
       ? driver.ratings.reduce((a, b) => a + b, 0) / driver.ratings.length
       : 0;
 
-  const handleSubmit = async () => {
-    if (!user) return alert("You must be logged in to review.");
-    if (!rating) return alert("Please give a rating.");
-    if (!review.trim()) return;
+  const initials = driver?.name
+    .split(' ')
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2) ?? '';
 
-    const reviewData = {
+  const handleSubmit = async () => {
+    if (!user) return alert("Please log in to leave a review.");
+    if (!rating) return alert("Please select a rating.");
+    if (!review.trim()) return;
+    setSubmitting(true);
+
+    await addDoc(collection(db, `drivers/${id}/reviews`), {
       text: review.trim(),
       rating,
       reviewerName: user.username || user.email,
       timestamp: Timestamp.now(),
-    };
-
-    await addDoc(collection(db, `drivers/${id}/reviews`), reviewData);
+    });
 
     await updateDoc(doc(db, "drivers", String(id)), {
       ratings: [...(driver?.ratings || []), rating],
@@ -110,140 +121,196 @@ export default function DriverPage() {
 
     setReview("");
     setRating(0);
-    location.reload(); // optional: refresh reviews
+    setSubmitting(false);
+    location.reload();
   };
 
   const handleDelete = async (reviewId: string, reviewRating: number) => {
     try {
       await deleteDoc(doc(db, `drivers/${id}/reviews`, reviewId));
       const updatedRatings = (driver?.ratings || []).filter((r) => r !== reviewRating);
-
-      await updateDoc(doc(db, "drivers", String(id)), {
-        ratings: updatedRatings,
-      });
-
+      await updateDoc(doc(db, "drivers", String(id)), { ratings: updatedRatings });
       setReviews((prev) => prev.filter((r) => r.id !== reviewId));
-    } catch (error) {
-      console.error("Error deleting review:", error);
+    } catch {
       alert("Failed to delete the review.");
     }
   };
 
-  if (!driver) return <p className="text-white p-6">Loading driver...</p>;
+  if (!driver) {
+    return (
+      <main className="mx-auto max-w-3xl px-5 py-16 text-center">
+        <div className="text-3xl mb-3">🚗</div>
+        <p style={{ color: 'var(--muted)' }}>Loading driver...</p>
+      </main>
+    );
+  }
 
   return (
-    <main className="p-6 max-w-3xl mx-auto text-white">
-      <h1 className="text-2xl font-bold mb-2">{driver.name}</h1>
-      <p className="mb-1">Service: {driver.service}</p>
-      <p className="mb-1">Phone: {driver.phone}</p>
-      <a
-        href={`https://wa.me/${driver.phone.replace(/\D/g, '')}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-block mb-4 bg-green-500 hover:bg-green-600 text-white text-sm px-3 py-1 rounded-full transition"
-      >
-        Chat on WhatsApp
-      </a>
+    <main className="mx-auto max-w-3xl px-5 py-8">
+      {/* Driver header card */}
+      <div className="card p-6 mb-6">
+        <div className="flex items-start gap-5">
+          <div
+            className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-2xl text-xl font-bold text-black"
+            style={{ background: 'var(--yellow)' }}
+          >
+            {initials}
+          </div>
+          <div className="flex-1">
+            <h1 className="text-2xl font-bold">{driver.name}</h1>
+            <p className="text-sm mt-0.5" style={{ color: 'var(--muted)' }}>
+              {driver.service}
+            </p>
+            <div className="mt-2 flex items-center gap-2">
+              <StarRow value={avg} />
+              <span className="text-sm" style={{ color: 'var(--yellow)' }}>
+                {avg > 0 ? avg.toFixed(1) : 'No ratings'}
+              </span>
+              {driver.ratings && driver.ratings.length > 0 && (
+                <span className="text-xs" style={{ color: 'var(--muted)' }}>
+                  ({driver.ratings.length} {driver.ratings.length === 1 ? 'review' : 'reviews'})
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
 
-      <div className="flex items-center gap-2 mt-2 mb-4">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <Star
-            key={star}
-            size={18}
-            fill={avgRating >= star ? "#facc15" : "none"}
-            stroke="#facc15"
-          />
-        ))}
-        <span className="text-sm text-yellow-400">{avgRating.toFixed(1)}</span>
+        {/* Contact buttons */}
+        <div className="mt-5 flex flex-wrap gap-2">
+          <a
+            href={`tel:${driver.phone}`}
+            className="btn-ghost flex items-center gap-2 text-sm"
+          >
+            <Phone size={15} />
+            {driver.phone}
+          </a>
+          <a
+            href={`https://wa.me/${driver.phone.replace(/\D/g, '')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-primary flex items-center gap-2 text-sm"
+            style={{ background: '#25d366' }}
+          >
+            <MessageCircle size={15} />
+            WhatsApp
+          </a>
+        </div>
       </div>
 
-      <div className="mb-6">
-        <h2 className="font-semibold text-lg mb-2">Price List</h2>
-        {driver.priceList && driver.priceList.length > 0 ? (
+      {/* Price list */}
+      {driver.priceList && driver.priceList.length > 0 && (
+        <div className="card p-6 mb-6">
+          <h2 className="font-semibold mb-4">Price List</h2>
           <ul className="space-y-2">
-            {driver.priceList.map((price, index) => (
-              <li key={index} className="flex justify-between text-lg text-yellow-500">
-                <span className="text-white">{price.location}</span>
-                <span className="text-white">₹ {price.price}</span>
+            {driver.priceList.map((price, i) => (
+              <li
+                key={i}
+                className="flex items-center justify-between rounded-lg px-4 py-2.5"
+                style={{ background: 'var(--surface-2)' }}
+              >
+                <span>{price.location}</span>
+                <span className="font-semibold" style={{ color: 'var(--yellow)' }}>
+                  ₹ {price.price}
+                </span>
               </li>
             ))}
           </ul>
-        ) : (
-          <p>No price information available.</p>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Review Form */}
-      <div className="bg-white text-black p-4 rounded shadow mb-6">
+      {/* Review form */}
+      <div className="card p-6 mb-6">
+        <h2 className="font-semibold mb-4">Leave a Review</h2>
         {user ? (
-          <>
-            <div className="flex gap-1 mb-2">
+          <div className="space-y-4">
+            <div className="flex items-center gap-1">
               {[1, 2, 3, 4, 5].map((s) => (
                 <Star
                   key={s}
-                  size={20}
-                  className="cursor-pointer"
+                  size={24}
+                  className="cursor-pointer transition-transform hover:scale-110"
                   onClick={() => setRating(s)}
-                  fill={rating >= s ? "#facc15" : "none"}
+                  fill={rating >= s ? '#facc15' : 'none'}
                   stroke="#facc15"
                 />
               ))}
+              {rating > 0 && (
+                <span className="ml-2 text-sm" style={{ color: 'var(--muted)' }}>
+                  {['', 'Poor', 'Fair', 'Good', 'Great', 'Excellent'][rating]}
+                </span>
+              )}
             </div>
             <textarea
               value={review}
               onChange={(e) => setReview(e.target.value)}
-              placeholder="Leave a review..."
-              className="w-full border border-gray-300 p-2 rounded mb-2"
+              placeholder="Share your experience..."
+              rows={3}
+              className="input resize-none"
             />
             <button
               onClick={handleSubmit}
-              className="bg-yellow-500 px-4 py-2 text-black font-bold rounded hover:bg-yellow-600"
+              disabled={submitting || !rating || !review.trim()}
+              className="btn-primary"
             >
-              Submit Review
+              {submitting ? 'Submitting...' : 'Submit Review'}
             </button>
-          </>
+          </div>
         ) : (
-          <p className="text-sm italic text-gray-600">
-            Please <strong className="text-yellow-500">login</strong> to leave a review.
+          <p className="text-sm" style={{ color: 'var(--muted)' }}>
+            <a href="/login" style={{ color: 'var(--yellow)' }} className="font-semibold hover:underline">
+              Log in
+            </a>{' '}
+            to leave a review.
           </p>
         )}
       </div>
 
-      {/* Show Reviews */}
-      <div className="space-y-4 mt-6">
-        <h2 className="text-xl font-semibold mb-2">User Reviews</h2>
+      {/* Reviews list */}
+      <div>
+        <h2 className="font-semibold mb-4">
+          Reviews{' '}
+          {reviews.length > 0 && (
+            <span className="ml-1 text-sm font-normal" style={{ color: 'var(--muted)' }}>
+              ({reviews.length})
+            </span>
+          )}
+        </h2>
+
         {reviews.length === 0 ? (
-          <p className="text-gray-300">No reviews yet.</p>
+          <div className="card py-10 text-center">
+            <p className="text-sm" style={{ color: 'var(--muted)' }}>No reviews yet. Be the first!</p>
+          </div>
         ) : (
-          reviews.map((r) => (
-            <div key={r.id} className="bg-gray-800 text-white p-3 rounded shadow">
-              <div className="flex gap-1 mb-1">
-                {[1, 2, 3, 4, 5].map((s) => (
-                  <Star
-                    key={s}
-                    size={16}
-                    fill={r.rating >= s ? "#facc15" : "none"}
-                    stroke="#facc15"
-                  />
-                ))}
+          <div className="space-y-3">
+            {reviews.map((r) => (
+              <div key={r.id} className="card p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <StarRow value={r.rating} size={14} />
+                    </div>
+                    <p className="text-sm leading-relaxed">{r.text}</p>
+                    <div className="mt-2 flex items-center gap-2 text-xs" style={{ color: 'var(--muted)' }}>
+                      <span style={{ color: 'var(--yellow)', fontWeight: 600 }}>
+                        {r.reviewerName ?? 'Anonymous'}
+                      </span>
+                      <span>·</span>
+                      <span>{r.timestamp?.toDate?.().toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                  {user?.username === r.reviewerName && (
+                    <button
+                      onClick={() => handleDelete(r.id, r.rating)}
+                      className="text-xs flex-shrink-0"
+                      style={{ color: 'var(--red)' }}
+                    >
+                      Delete
+                    </button>
+                  )}
+                </div>
               </div>
-              <p className="text-sm">{r.text}</p>
-              <p className="text-xs text-yellow-400 mt-1 font-semibold">
-                — {r.reviewerName || 'Anonymous'}
-              </p>
-              <p className="text-xs text-gray-400 mt-0.5">
-                {r.timestamp?.toDate?.().toLocaleString()}
-              </p>
-              {user?.username === r.reviewerName && (
-                <button
-                  onClick={() => handleDelete(r.id, r.rating)}
-                  className="text-red-400 text-xs mt-1 underline"
-                >
-                  Delete
-                </button>
-              )}
-            </div>
-          ))
+            ))}
+          </div>
         )}
       </div>
     </main>

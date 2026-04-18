@@ -17,6 +17,81 @@ interface Driver {
   ratings?: number[];
 }
 
+function avgRating(ratings?: number[]) {
+  if (!ratings || ratings.length === 0) return 0;
+  return ratings.reduce((s, r) => s + r, 0) / ratings.length;
+}
+
+function DriverCard({ driver }: { driver: Driver }) {
+  const avg = avgRating(driver.ratings);
+  const initials = driver.name
+    .split(' ')
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+
+  return (
+    <Link href={`/driver/${driver.id}`} className="block group">
+      <div
+        className="card p-5 transition-all duration-200 group-hover:scale-[1.02]"
+        style={{
+          borderColor: 'var(--border)',
+        }}
+        onMouseEnter={(e) => {
+          (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--yellow)';
+          (e.currentTarget as HTMLDivElement).style.boxShadow = '0 0 0 1px var(--yellow)';
+        }}
+        onMouseLeave={(e) => {
+          (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--border)';
+          (e.currentTarget as HTMLDivElement).style.boxShadow = 'none';
+        }}
+      >
+        <div className="flex items-start gap-4">
+          {/* Avatar */}
+          <div
+            className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl text-sm font-bold text-black"
+            style={{ background: 'var(--yellow)' }}
+          >
+            {initials}
+          </div>
+
+          {/* Info */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <h4 className="font-semibold truncate">{driver.name}</h4>
+              <span
+                className="flex-shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold"
+                style={{
+                  background: driver.availability === 'Busy' ? 'rgba(239,68,68,0.12)' : 'rgba(34,197,94,0.12)',
+                  color: driver.availability === 'Busy' ? 'var(--red)' : 'var(--green)',
+                }}
+              >
+                {driver.availability ?? 'Free'}
+              </span>
+            </div>
+
+            {/* Stars */}
+            <div className="mt-1.5 flex items-center gap-1">
+              {[1, 2, 3, 4, 5].map((s) => (
+                <Star
+                  key={s}
+                  size={13}
+                  fill={avg >= s ? '#facc15' : 'none'}
+                  stroke="#facc15"
+                />
+              ))}
+              <span className="ml-1 text-xs" style={{ color: 'var(--muted)' }}>
+                {avg > 0 ? avg.toFixed(1) : 'No ratings'}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
 export default function HomePage() {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -26,20 +101,14 @@ export default function HomePage() {
   const [hasDashboard, setHasDashboard] = useState(false);
 
   useEffect(() => {
-    const checkDashboard = async () => {
-      if (!user) return;
-      const snap = await getDocs(
-        query(collection(db, "drivers"), where("ownerEmail", "==", user.email))
-      );
-      setHasDashboard(!snap.empty);
-    };
-
-    checkDashboard();
+    if (!user) return;
+    getDocs(query(collection(db, "drivers"), where("ownerEmail", "==", user.email))).then(
+      (snap) => setHasDashboard(!snap.empty)
+    );
   }, [user]);
 
   useEffect(() => {
-    const fetchDrivers = async () => {
-      const snapshot = await getDocs(collection(db, "drivers"));
+    getDocs(collection(db, "drivers")).then((snapshot) => {
       const data: Driver[] = snapshot.docs.map((doc) => {
         const d = doc.data();
         return {
@@ -51,168 +120,126 @@ export default function HomePage() {
           ratings: d.ratings || [],
         };
       });
-
       setTimeout(() => {
         setDrivers(data);
         setLoading(false);
-      }, 500);
-    };
-
-    fetchDrivers();
+      }, 400);
+    });
   }, []);
+
+  const filtered = [...drivers]
+    .filter(
+      (d) =>
+        d.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        d.service.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => {
+      if (sortOption === "alphabetical") return a.name.localeCompare(b.name);
+      if (sortOption === "rating") return avgRating(b.ratings) - avgRating(a.ratings);
+      return 0;
+    });
+
+  const grouped = filtered.reduce((acc: Record<string, Driver[]>, driver) => {
+    if (!acc[driver.service]) acc[driver.service] = [];
+    acc[driver.service].push(driver);
+    return acc;
+  }, {});
 
   return (
     <>
       <LoadingScreen show={loading} />
 
       {!loading && (
-        <main className="px-4 py-6 max-w-7xl w-full mx-auto text-white">
-          <div className="mb-6">
-            <h1 className="text-xl text-gray-400">
-              Hi, {user?.username || "Guest"}
-            </h1>
-            <div className="flex justify-between items-center w-full">
-              <h2 className="text-4xl font-extrabold tracking-tight">
-                Your Ride, Reimagined.
-              </h2>
-
+        <main className="mx-auto w-full max-w-5xl px-5 py-8">
+          {/* Hero */}
+          <div className="mb-8">
+            <p className="text-sm mb-1" style={{ color: 'var(--muted)' }}>
+              Hey, {user?.username ?? 'there'} 👋
+            </p>
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <h1 className="text-3xl font-bold tracking-tight">
+                Find your ride.
+              </h1>
               {hasDashboard && (
-                <Link
-                  href="/driver-dashboard"
-                  className="text-sm md:text-base px-3 py-2 md:px-4 md:py-3 bg-yellow-400 text-black font-semibold rounded-4xl hover:bg-yellow-300"
-                >
-                  Dashboard
+                <Link href="/driver-dashboard" className="btn-primary text-sm">
+                  My Dashboard
                 </Link>
               )}
             </div>
-
-            <p className="text-gray-400 text-lg">
-              Browse verified student drivers offering rides nearby.
+            <p className="mt-1.5 text-sm" style={{ color: 'var(--muted)' }}>
+              Browse verified student drivers offering rides on campus.
             </p>
           </div>
 
-          {/* Search */}
-          <div className="relative mb-5">
-            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white text-lg">
-              🔍
-            </span>
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search drivers or services"
-              className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-700 bg-black text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400"
-            />
-          </div>
-
-          {/* Sort Dropdown */}
-          <div className="mb-10 flex items-center gap-3">
-            <label className="text-sm text-gray-300">Sort:</label>
+          {/* Search + Sort row */}
+          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative flex-1">
+              <svg
+                className="absolute left-3 top-1/2 -translate-y-1/2"
+                width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                style={{ color: 'var(--muted-2)' }}
+              >
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+              </svg>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search drivers or services..."
+                className="input pl-9"
+              />
+            </div>
             <select
               value={sortOption}
               onChange={(e) => setSortOption(e.target.value)}
-              className="bg-black text-white border border-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+              className="input sm:w-48"
+              style={{ cursor: 'pointer' }}
             >
               <option value="recent">Recently Added</option>
-              <option value="alphabetical">Alphabetically (A–Z)</option>
-              <option value="rating">Rating (High → Low)</option>
+              <option value="alphabetical">A → Z</option>
+              <option value="rating">Top Rated</option>
             </select>
           </div>
 
-          {/* Grouped Drivers */}
-          <div className="space-y-10">
-            {Object.entries(
-              [...drivers]
-                .filter(
-                  (driver) =>
-                    driver.name
-                      .toLowerCase()
-                      .includes(searchTerm.toLowerCase()) ||
-                    driver.service
-                      .toLowerCase()
-                      .includes(searchTerm.toLowerCase())
-                )
-                .sort((a, b) => {
-                  if (sortOption === "alphabetical") {
-                    return a.name.localeCompare(b.name);
-                  } else if (sortOption === "rating") {
-                    const avgA = a.ratings?.length
-                      ? a.ratings.reduce((sum, r) => sum + r, 0) /
-                        a.ratings.length
-                      : 0;
-                    const avgB = b.ratings?.length
-                      ? b.ratings.reduce((sum, r) => sum + r, 0) /
-                        b.ratings.length
-                      : 0;
-                    return avgB - avgA;
-                  }
-                  return 0;
-                })
-                .reduce((acc: Record<string, Driver[]>, driver) => {
-                  if (!acc[driver.service]) acc[driver.service] = [];
-                  acc[driver.service].push(driver);
-                  return acc;
-                }, {})
-            ).map(([serviceName, serviceDrivers]) => (
-              <div key={serviceName}>
-                <h3 className="text-2xl font-semibold mb-4 capitalize text-white">
-                  {serviceName}
-                </h3>
-
-                <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  {serviceDrivers.map((driver) => {
-                    const avgRating =
-                      driver.ratings && driver.ratings.length > 0
-                        ? driver.ratings.reduce((sum, r) => sum + r, 0) /
-                          driver.ratings.length
-                        : 0;
-
-                    return (
-                      <Link
-                        key={driver.id}
-                        href={`/driver/${driver.id}`}
-                        className="group"
-                      >
-                        <div className="bg-[#1C1C1C] p-5 rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 border border-transparent group-hover:border-yellow-400">
-                          <div className="flex justify-between items-center mb-1">
-                            <h4 className="font-semibold text-lg text-white">
-                              {driver.name}
-                            </h4>
-                            <div className="flex items-center gap-1 text-yellow-400 text-sm">
-                              <Star size={16} fill="#facc15" stroke="#facc15" />
-                              <span>{avgRating.toFixed(1)}</span>
-                            </div>
-                          </div>
-                          <p
-                            className={`text-sm font-medium ${
-                              driver.availability === "Free"
-                                ? "text-green-400"
-                                : "text-red-400"
-                            }`}
-                          >
-                            {driver.availability}
-                          </p>
-                          <p className="text-sm text-gray-400 italic mb-1">
-                            Phone: {driver.phone}
-                          </p>
-                          <div className="flex gap-1 mt-1">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <Star
-                                key={star}
-                                size={14}
-                                fill={avgRating >= star ? "#facc15" : "none"}
-                                stroke="#facc15"
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
+          {/* Results */}
+          {Object.keys(grouped).length === 0 ? (
+            <div
+              className="card flex flex-col items-center justify-center gap-3 py-20 text-center"
+            >
+              <div className="text-4xl">🚗</div>
+              <p className="font-semibold text-lg">No drivers found</p>
+              <p className="text-sm" style={{ color: 'var(--muted)' }}>
+                {searchTerm
+                  ? `No results for "${searchTerm}". Try a different search.`
+                  : 'No drivers are registered yet. Be the first to drive!'}
+              </p>
+              <Link href="/add-driver" className="btn-primary mt-2 text-sm">
+                Register as a driver
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-10">
+              {Object.entries(grouped).map(([serviceName, serviceDrivers]) => (
+                <section key={serviceName}>
+                  <div className="mb-4 flex items-center gap-3">
+                    <h2 className="text-lg font-semibold capitalize">{serviceName}</h2>
+                    <span
+                      className="rounded-full px-2 py-0.5 text-xs font-semibold"
+                      style={{ background: 'var(--surface-2)', color: 'var(--muted)' }}
+                    >
+                      {serviceDrivers.length}
+                    </span>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {serviceDrivers.map((driver) => (
+                      <DriverCard key={driver.id} driver={driver} />
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
+          )}
         </main>
       )}
     </>
