@@ -28,10 +28,10 @@ export default function LoginPage() {
     const existingUser = localStorage.getItem('user');
     if (existingUser) {
       router.push('/');
-    } else {
-      const timeout = setTimeout(() => setPageLoading(false), 400);
-      return () => clearTimeout(timeout);
+      return;
     }
+    const timeout = setTimeout(() => setPageLoading(false), 400);
+    return () => clearTimeout(timeout);
   }, [router]);
 
   function determineRole(email: string, password?: string): 'user' | 'dev' {

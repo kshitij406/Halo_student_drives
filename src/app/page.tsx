@@ -108,23 +108,25 @@ export default function HomePage() {
   }, [user]);
 
   useEffect(() => {
-    getDocs(collection(db, "drivers")).then((snapshot) => {
-      const data: Driver[] = snapshot.docs.map((doc) => {
-        const d = doc.data();
-        return {
-          id: doc.id,
-          name: d.name,
-          service: d.service,
-          phone: d.phone,
-          availability: d.availability || "Free",
-          ratings: d.ratings || [],
-        };
-      });
-      setTimeout(() => {
+    getDocs(collection(db, "drivers"))
+      .then((snapshot) => {
+        const data: Driver[] = snapshot.docs.map((doc) => {
+          const d = doc.data();
+          return {
+            id: doc.id,
+            name: d.name,
+            service: d.service,
+            phone: d.phone,
+            availability: d.availability || "Free",
+            ratings: d.ratings || [],
+          };
+        });
         setDrivers(data);
-        setLoading(false);
-      }, 400);
-    });
+      })
+      .catch(() => {
+        // Firebase unavailable — show empty state rather than infinite spinner
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const filtered = [...drivers]
