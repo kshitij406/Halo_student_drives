@@ -1,0 +1,29 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Drivers — public read, auth required for writes
+    match /drivers/{driverId} {
+      allow read: if true;
+      allow create, update: if request.auth != null;
+
+      // Reviews
+      match /reviews/{reviewId} {
+        allow read: if true;
+        allow create: if request.auth != null;
+        allow delete: if request.auth != null;
+      }
+    }
+
+    // Pending service submissions
+    match /pendingServices/{doc} {
+      allow create: if request.auth != null;
+      allow read, update: if request.auth != null;
+    }
+
+    // Lock everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

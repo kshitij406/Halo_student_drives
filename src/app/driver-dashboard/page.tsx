@@ -12,6 +12,8 @@ import {
   query,
   where,
 } from "firebase/firestore";
+import { Trash2, Plus, Save } from "lucide-react";
+import { toast } from "sonner";
 
 interface Driver {
   id: string;
@@ -28,29 +30,26 @@ function AvailabilityToggle({
   onChange,
 }: {
   value: "Free" | "Busy";
-  onChange: (newValue: "Free" | "Busy") => void;
+  onChange: (val: "Free" | "Busy") => void;
 }) {
-  const enabled = value === "Free";
-
+  const isFree = value === "Free";
   return (
-    <label className="relative inline-flex items-center cursor-pointer">
-      <input
-        type="checkbox"
-        className="sr-only peer"
-        checked={enabled}
-        onChange={() => onChange(enabled ? "Busy" : "Free")}
+    <button
+      type="button"
+      onClick={() => onChange(isFree ? "Busy" : "Free")}
+      className="flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold transition-colors"
+      style={
+        isFree
+          ? { background: 'rgba(34,197,94,0.15)', color: 'var(--green)' }
+          : { background: 'rgba(239,68,68,0.15)', color: 'var(--red)' }
+      }
+    >
+      <span
+        className="h-2 w-2 rounded-full"
+        style={{ background: isFree ? 'var(--green)' : 'var(--red)' }}
       />
-      <div
-        className={`w-14 h-8 rounded-full transition-colors duration-300 ${
-          enabled ? "bg-green-500" : "bg-gray-400"
-        }`}
-      ></div>
-      <div
-        className={`absolute top-0.5 left-0.5 w-7 h-7 bg-white rounded-full shadow-md transition-transform duration-300 transform ${
-          enabled ? "translate-x-6" : "translate-x-0"
-        }`}
-      ></div>
-    </label>
+      {value}
+    </button>
   );
 }
 
@@ -59,204 +58,179 @@ export default function DriverDashboard() {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [loading, setLoading] = useState(true);
   const [editedDrivers, setEditedDrivers] = useState<Record<string, Partial<Driver>>>({});
-  const [successMessage, setSuccessMessage] = useState("");
 
   useEffect(() => {
-    const fetchDrivers = async () => {
-      if (!user) return;
-      const q = query(collection(db, "drivers"), where("ownerEmail", "==", user.email));
-      const snap = await getDocs(q);
-      const results = snap.docs.map((doc) => ({
-        id: doc.id,
-        ...(doc.data() as Omit<Driver, "id">),
-      }));
-      setDrivers(results);
-      setLoading(false);
-    };
-
-    fetchDrivers();
+    if (!user) return;
+    const q = query(collection(db, "drivers"), where("ownerEmail", "==", user.email));
+    getDocs(q)
+      .then((snap) => {
+        setDrivers(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Driver, "id">) })));
+      })
+      .finally(() => setLoading(false));
   }, [user]);
 
-  const handleFieldChange = <K extends keyof Driver>(
-    driverId: string,
-    field: K,
-    value: Driver[K]
-  ) => {
-    setEditedDrivers((prev) => ({
-      ...prev,
-      [driverId]: {
-        ...prev[driverId],
-        [field]: value,
-      },
-    }));
+  const patch = <K extends keyof Driver>(id: string, field: K, value: Driver[K]) =>
+    setEditedDrivers((prev) => ({ ...prev, [id]: { ...prev[id], [field]: value } }));
+
+  const patchPrice = (driverId: string, i: number, field: "location" | "price", value: string) => {
+    const base = drivers.find((d) => d.id === driverId);
+    if (!base) return;
+    const list = [...(editedDrivers[driverId]?.priceList ?? base.priceList)];
+    list[i] = { ...list[i], [field]: value };
+    patch(driverId, "priceList", list);
   };
 
-  const handlePriceChange = (
-    driverId: string,
-    index: number,
-    field: "location" | "price",
-    value: string
-  ) => {
-    const current = drivers.find((d) => d.id === driverId);
-    if (!current) return;
-
-    const updatedPrices = [...(editedDrivers[driverId]?.priceList || current.priceList)];
-    updatedPrices[index] = {
-      ...updatedPrices[index],
-      [field]: value,
-    };
-
-    handleFieldChange(driverId, "priceList", updatedPrices);
+  const addPrice = (driverId: string) => {
+    const base = drivers.find((d) => d.id === driverId);
+    if (!base) return;
+    const list = [...(editedDrivers[driverId]?.priceList ?? base.priceList), { location: "", price: "" }];
+    patch(driverId, "priceList", list);
   };
 
-  const removePriceEntry = (driverId: string, index: number) => {
-    const current = drivers.find((d) => d.id === driverId);
-    if (!current) return;
-
-    const updatedPrices = [...(editedDrivers[driverId]?.priceList || current.priceList)];
-    updatedPrices.splice(index, 1);
-
-    handleFieldChange(driverId, "priceList", updatedPrices);
+  const removePrice = (driverId: string, i: number) => {
+    const base = drivers.find((d) => d.id === driverId);
+    if (!base) return;
+    const list = [...(editedDrivers[driverId]?.priceList ?? base.priceList)];
+    list.splice(i, 1);
+    patch(driverId, "priceList", list);
   };
 
-  const saveChanges = async (driverId: string) => {
-    if (!editedDrivers[driverId]) return;
-
-    const updatedData = editedDrivers[driverId];
-    await updateDoc(doc(db, "drivers", driverId), updatedData);
-
-    setEditedDrivers((prev) => {
-      const updated = { ...prev };
-      delete updated[driverId];
-      return updated;
-    });
-
-    // Update main drivers state
-    setDrivers((prev) =>
-      prev.map((d) =>
-        d.id === driverId ? { ...d, ...updatedData } : d
-      )
-    );
-
-    setSuccessMessage("Driver changes saved successfully");
-    setTimeout(() => setSuccessMessage(""), 3000);
+  const save = async (driverId: string) => {
+    const edits = editedDrivers[driverId];
+    if (!edits) return;
+    await updateDoc(doc(db, "drivers", driverId), edits);
+    setDrivers((prev) => prev.map((d) => (d.id === driverId ? { ...d, ...edits } : d)));
+    setEditedDrivers((prev) => { const n = { ...prev }; delete n[driverId]; return n; });
+    toast.success("Saved");
   };
 
-  const deleteDriver = async (id: string) => {
+  const remove = async (id: string) => {
     await deleteDoc(doc(db, "drivers", id));
     setDrivers((prev) => prev.filter((d) => d.id !== id));
-  };
-
-  const addPriceEntry = (driverId: string) => {
-    const current = drivers.find((d) => d.id === driverId);
-    if (!current) return;
-
-    const updatedPrices = [...(editedDrivers[driverId]?.priceList || current.priceList)];
-    updatedPrices.push({ location: "", price: "" });
-
-    handleFieldChange(driverId, "priceList", updatedPrices);
+    toast.success("Driver removed");
   };
 
   if (!user) {
-    return <main className="p-10 text-red-500 text-center font-bold">Login required</main>;
+    return (
+      <main className="flex min-h-[60vh] items-center justify-center">
+        <p style={{ color: 'var(--muted)' }}>Please log in to access your dashboard.</p>
+      </main>
+    );
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 text-white">
-      <h2 className="text-2xl font-bold mb-6 text-center">Driver Dashboard</h2>
+    <main className="mx-auto max-w-3xl px-5 py-8">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold">Driver Dashboard</h1>
+        <p className="mt-1 text-sm" style={{ color: 'var(--muted)' }}>
+          Manage your driver profiles and availability.
+        </p>
+      </div>
 
       {loading ? (
-        <p className="text-gray-400">Loading...</p>
+        <div className="card py-12 text-center" style={{ color: 'var(--muted)' }}>Loading...</div>
       ) : drivers.length === 0 ? (
-        <p className="text-gray-500 text-center">No drivers found for your service.</p>
+        <div className="card py-12 text-center">
+          <p style={{ color: 'var(--muted)' }}>No drivers found. Your submissions may still be pending approval.</p>
+        </div>
       ) : (
-        drivers.map((driver) => {
-          const edits = editedDrivers[driver.id] || {};
-          const current = { ...driver, ...edits };
+        <div className="space-y-5">
+          {drivers.map((driver) => {
+            const edits = editedDrivers[driver.id] ?? {};
+            const current = { ...driver, ...edits };
+            const isDirty = Object.keys(edits).length > 0;
 
-          return (
-            <div key={driver.id} className="border border-gray-600 rounded p-4 mb-6 bg-black">
-              <label className="block mb-1 text-yellow-500 font-semibold">Name</label>
-              <input
-                className="w-full p-2 mb-3 rounded bg-black outline-1 outline-gray-600 text-white"
-                value={current.name}
-                onChange={(e) => handleFieldChange(driver.id, "name", e.target.value)}
-              />
-
-              <label className="block mb-1 text-yellow-500 font-semibold">Phone Number</label>
-              <input
-                className="w-full p-2 mb-3 rounded outline-1 outline-gray-600 bg-black text-white"
-                value={current.phone}
-                onChange={(e) => handleFieldChange(driver.id, "phone", e.target.value)}
-              />
-
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-yellow-500 font-semibold">Driver Availability</span>
-                <AvailabilityToggle
-                  value={current.availability || "Free"}
-                  onChange={(val) => handleFieldChange(driver.id, "availability", val)}
-                />
-              </div>
-
-              <label className="block mb-2 text-yellow-500 font-semibold">Prices</label>
-              <div className="flex flex-col gap-2 mb-4">
-                {current.priceList.map((entry, i) => (
-                  <div key={i} className="flex gap-2 items-center">
-                    <input
-                      className="flex-[3] min-w-0 p-2 rounded outline-1 outline-gray-600 bg-black text-white font-bold"
-                      value={entry.location}
-                      onChange={(e) =>
-                        handlePriceChange(driver.id, i, "location", e.target.value)
-                      }
-                    />
-                    <input
-                      className="flex-[1] min-w-0 p-2 rounded outline-1 outline-gray-600 bg-black text-white font-bold"
-                      value={entry.price}
-                      onChange={(e) =>
-                        handlePriceChange(driver.id, i, "price", e.target.value)
-                      }
+            return (
+              <div key={driver.id} className="card p-6 space-y-5">
+                {/* Header row */}
+                <div className="flex items-center justify-between gap-3">
+                  <h2 className="font-semibold text-lg">{driver.name}</h2>
+                  <div className="flex items-center gap-2">
+                    <AvailabilityToggle
+                      value={current.availability ?? "Free"}
+                      onChange={(val) => patch(driver.id, "availability", val)}
                     />
                     <button
-                      onClick={() => removePriceEntry(driver.id, i)}
-                      className="bg-red-600 hover:bg-red-700 text-white font-bold px-5 py-2 rounded"
+                      onClick={() => remove(driver.id)}
+                      className="rounded-lg p-2 transition-colors"
+                      style={{ color: 'var(--muted)', background: 'var(--surface-2)', border: '1px solid var(--border)' }}
+                      title="Remove driver"
                     >
-                      X
+                      <Trash2 size={15} />
                     </button>
                   </div>
-                ))}
+                </div>
+
+                {/* Fields */}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Name</label>
+                    <input
+                      className="input"
+                      value={current.name}
+                      onChange={(e) => patch(driver.id, "name", e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Phone</label>
+                    <input
+                      className="input"
+                      value={current.phone}
+                      onChange={(e) => patch(driver.id, "phone", e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {/* Prices */}
+                <div>
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Prices</label>
+                  <div className="space-y-2">
+                    {current.priceList.map((entry, i) => (
+                      <div key={i} className="flex gap-2">
+                        <input
+                          className="input flex-1"
+                          placeholder="Location"
+                          value={entry.location}
+                          onChange={(e) => patchPrice(driver.id, i, "location", e.target.value)}
+                        />
+                        <input
+                          className="input w-24"
+                          placeholder="Price"
+                          value={entry.price}
+                          onChange={(e) => patchPrice(driver.id, i, "price", e.target.value)}
+                        />
+                        <button
+                          onClick={() => removePrice(driver.id, i)}
+                          className="rounded-lg p-2 flex-shrink-0"
+                          style={{ color: 'var(--muted)', background: 'var(--surface-2)', border: '1px solid var(--border)' }}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => addPrice(driver.id)}
+                    className="btn-ghost mt-2 gap-1.5 text-sm"
+                  >
+                    <Plus size={14} /> Add price
+                  </button>
+                </div>
+
+                {/* Save */}
+                {isDirty && (
+                  <button
+                    onClick={() => save(driver.id)}
+                    className="btn-primary gap-2 text-sm"
+                  >
+                    <Save size={14} /> Save changes
+                  </button>
+                )}
               </div>
-
-              <button
-                onClick={() => addPriceEntry(driver.id)}
-                className="w-full mb-2 text-center text-lg text-black bg-yellow-500 py-2 rounded font-semibold hover:bg-yellow-400"
-              >
-                Add Price Entry
-              </button>
-
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:gap-2">
-                <button
-                  onClick={() => saveChanges(driver.id)}
-                  className="w-full mb-2 sm:mb-0 text-lg text-black bg-yellow-500 py-2 rounded hover:bg-green-600 font-semibold"
-                >
-                  Save Changes
-                </button>
-                <button
-                  onClick={() => deleteDriver(driver.id)}
-                  className="w-full text-lg text-black bg-yellow-500 py-2 rounded hover:bg-red-600 font-semibold"
-                >
-                  Remove Driver
-                </button>
-              </div>
-            </div>
-          );
-        })
+            );
+          })}
+        </div>
       )}
-
-      {successMessage && (
-        <p className="text-green-400 font-bold text-center text-sm mt-4">
-          {successMessage}
-        </p>
-      )}
-    </div>
+    </main>
   );
 }
